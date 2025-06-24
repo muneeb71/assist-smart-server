@@ -1,0 +1,348 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id                Int                 @id @default(autoincrement())
+  name              String              @unique
+  users             User[]
+  RoleAccessRequest RoleAccessRequest[]
+}
+
+model User {
+  id                Int                 @id @default(autoincrement())
+  email             String              @unique
+  fullName          String
+  mobileNumber      String?
+  gender            String?
+  profilePicture    String?
+  roleId            Int
+  role              Role                @relation(fields: [roleId], references: [id])
+  otps              Otp[]
+  accessLogs        AccessLog[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  RoleAccessRequest RoleAccessRequest[]
+  riskAssessments   RiskAssessment[]
+  jobSafetyAnalyses JobSafetyAnalysis[]
+  methodStatements  MethodStatement[]
+  responsePlans     ResponsePlan[]
+  toolboxTalks      ToolboxTalk[]
+  incidentReports   IncidentReport[]
+  sitePermissions   SitePermission[]
+  incidentInvestigations IncidentInvestigation[]
+}
+
+model Otp {
+  id        Int      @id @default(autoincrement())
+  code      String
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model AccessLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  browser   String
+  city      String
+  country   String
+  createdAt DateTime @default(now())
+}
+
+model RoleAccessRequest {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  requestedRoleId Int
+  status          String // e.g., PENDING, APPROVED, REJECTED
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id])
+  requestedRole   Role     @relation(fields: [requestedRoleId], references: [id])
+}
+
+model CompanyBranding {
+  id                    Int      @id @default(autoincrement())
+  name                  String
+  documentControlNumber String
+  logo                  String
+  riskAssessments       RiskAssessment[]
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  jobSafetyAnalyses     JobSafetyAnalysis[]
+  methodStatements      MethodStatement[]
+  responsePlans         ResponsePlan[]
+  toolboxTalks          ToolboxTalk[]
+  incidentReports       IncidentReport[]
+  sitePermissions       SitePermission[]
+  incidentInvestigations IncidentInvestigation[]
+}
+
+model RiskAssessment {
+  id                      Int      @id @default(autoincrement())
+  userId                  Int
+  user                    User     @relation(fields: [userId], references: [id])
+  companyBrandingId       Int
+  companyBranding         CompanyBranding @relation(fields: [companyBrandingId], references: [id])
+  industry                String
+  activityType            String
+  location                String
+  existingControlMeasures String
+  responsibleDepartments  String
+  preparedBy              String
+  preparedByOccupation    String
+  reviewedBy              String
+  reviewedByOccupation    String
+  approvedBy              String
+  approvedByOccupation    String
+  gcpFileUrl              String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model JobSafetyAnalysis {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  user              User     @relation(fields: [userId], references: [id])
+  companyBrandingId Int
+  companyBranding   CompanyBranding @relation(fields: [companyBrandingId], references: [id])
+  activityType      String
+  date              DateTime
+  time              String
+  numberOfWorkers   Int
+  knownHazards      String
+  participantNames  String
+  gcpFileUrl        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model MethodStatement {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  user              User     @relation(fields: [userId], references: [id])
+  companyBrandingId Int
+  companyBranding   CompanyBranding @relation(fields: [companyBrandingId], references: [id])
+  activityName      String
+  toolsAndEquipment String
+  numberOfPeople    Int
+  activityBrief     String
+  gcpFileUrl        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  safetyMeasures    MethodStatementSafetyMeasure[]
+  staffPersons      MethodStatementStaffPerson[]
+}
+
+model SafetyMeasure {
+  id        Int      @id @default(autoincrement())
+  name      String
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  methodStatementLinks MethodStatementSafetyMeasure[]
+}
+
+model MethodStatementSafetyMeasure {
+  id                Int      @id @default(autoincrement())
+  methodStatementId Int
+  methodStatement   MethodStatement @relation(fields: [methodStatementId], references: [id])
+  safetyMeasureId   Int?
+  safetyMeasure     SafetyMeasure? @relation(fields: [safetyMeasureId], references: [id])
+  name              String
+}
+
+model MethodStatementStaffPerson {
+  id                Int      @id @default(autoincrement())
+  methodStatementId Int
+  methodStatement   MethodStatement @relation(fields: [methodStatementId], references: [id])
+  name              String
+  position          String
+  mobileNumber      String
+}
+
+model ResponsePlan {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  user              User     @relation(fields: [userId], references: [id])
+  companyBrandingId Int
+  companyBranding   CompanyBranding @relation(fields: [companyBrandingId], references: [id])
+  emergencyType     String
+  gcpFileUrl        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  evacuationMaps    ResponsePlanEvacuationMap[]
+  fireWardens       ResponsePlanFireWarden[]
+  floorWardens      ResponsePlanFloorWarden[]
+}
+
+model ResponsePlanEvacuationMap {
+  id            Int      @id @default(autoincrement())
+  responsePlanId Int
+  responsePlan   ResponsePlan @relation(fields: [responsePlanId], references: [id])
+  imageUrl      String
+}
+
+model ResponsePlanFireWarden {
+  id            Int      @id @default(autoincrement())
+  responsePlanId Int
+  responsePlan   ResponsePlan @relation(fields: [responsePlanId], references: [id])
+  name          String
+}
+
+model ResponsePlanFloorWarden {
+  id            Int      @id @default(autoincrement())
+  responsePlanId Int
+  responsePlan   ResponsePlan @relation(fields: [responsePlanId], references: [id])
+  name          String
+}
+
+model ToolboxTalk {
+  id                    Int      @id @default(autoincrement())
+  userId                Int
+  user                  User     @relation(fields: [userId], references: [id])
+  companyBrandingId     Int
+  companyBranding       CompanyBranding @relation(fields: [companyBrandingId], references: [id])
+  topic                 String
+  keyPoints             String
+  numberOfParticipants  Int
+  date                  DateTime
+  time                  String
+  gcpFileUrl            String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  trainingMedia         ToolboxTalkTrainingMedia[]
+}
+
+model ToolboxTalkTrainingMedia {
+  id            Int      @id @default(autoincrement())
+  toolboxTalkId Int
+  toolboxTalk   ToolboxTalk @relation(fields: [toolboxTalkId], references: [id])
+  imageUrl      String
+}
+
+model IncidentReport {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  user              User     @relation(fields: [userId], references: [id])
+  companyBrandingId Int
+  companyBranding   CompanyBranding @relation(fields: [companyBrandingId], references: [id])
+  incidentType      String
+  description       String
+  date              DateTime
+  time              String
+  location          String
+  gcpFileUrl        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model SitePermission {
+  id                   Int      @id @default(autoincrement())
+  userId               Int
+  user                 User     @relation(fields: [userId], references: [id])
+  companyBrandingId    Int
+  companyBranding      CompanyBranding @relation(fields: [companyBrandingId], references: [id])
+  location             String
+  date                 DateTime
+  time                 String
+  activityType         String
+  permitApplicantName  String
+  permitHolderName     String
+  supervisorName       String
+  descriptionOfWork    String
+  permitValidity       String
+  permitExtension      String
+  permitApproverName   String
+  permitClosureDate    DateTime
+  gcpFileUrl           String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  participants         SitePermissionParticipant[]
+}
+
+model SitePermissionParticipant {
+  id               Int      @id @default(autoincrement())
+  sitePermissionId Int
+  sitePermission   SitePermission @relation(fields: [sitePermissionId], references: [id])
+  name             String
+}
+
+model IncidentInvestigation {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  user              User     @relation(fields: [userId], references: [id])
+  companyBrandingId Int
+  companyBranding   CompanyBranding @relation(fields: [companyBrandingId], references: [id])
+  incidentCategory  String
+  description       String
+  date              DateTime
+  time              String
+  location          String
+  supervisor        String
+  reportedBy        String
+  incidentDetails   String
+  investigationDetails String
+  gcpFileUrl        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  participants      IncidentInvestigationParticipant[]
+  witnesses         IncidentInvestigationWitness[]
+  departments       IncidentInvestigationDepartment[]
+  immediateCausesUnsafeActs IncidentInvestigationImmediateCauseUnsafeAct[]
+  immediateCausesUnsafeConditions IncidentInvestigationImmediateCauseUnsafeCondition[]
+  rootCausesPersonalFactors IncidentInvestigationRootCausePersonalFactor[]
+}
+
+model IncidentInvestigationParticipant {
+  id                      Int      @id @default(autoincrement())
+  incidentInvestigationId Int
+  incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id])
+  name                    String
+}
+
+model IncidentInvestigationWitness {
+  id                      Int      @id @default(autoincrement())
+  incidentInvestigationId Int
+  incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id])
+  name                    String
+}
+
+model IncidentInvestigationDepartment {
+  id                      Int      @id @default(autoincrement())
+  incidentInvestigationId Int
+  incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id])
+  name                    String
+}
+
+model IncidentInvestigationImmediateCauseUnsafeAct {
+  id                      Int      @id @default(autoincrement())
+  incidentInvestigationId Int
+  incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id])
+  name                    String
+}
+
+model IncidentInvestigationImmediateCauseUnsafeCondition {
+  id                      Int      @id @default(autoincrement())
+  incidentInvestigationId Int
+  incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id])
+  name                    String
+}
+
+model IncidentInvestigationRootCausePersonalFactor {
+  id                      Int      @id @default(autoincrement())
+  incidentInvestigationId Int
+  incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id])
+  name                    String
+}
