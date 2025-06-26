@@ -28,29 +28,46 @@ export const createRiskAssessmentService = async ({
     );
     const generatedContent = await generateUsingGemini(prompt);
 
+    let cleanedContent = generatedContent.trim();
+    if (cleanedContent.startsWith("```json")) {
+      cleanedContent = cleanedContent
+        .replace(/^```json/, "")
+        .replace(/```$/, "")
+        .trim();
+    }
+    let parsedContent;
+    try {
+      parsedContent = JSON.parse(cleanedContent);
+    } catch (e) {
+      throw new CustomError("Failed to parse generated content as JSON", 500);
+    }
+
     // 2. Fill doc template (placeholder)
     // 3. Upload to GCP bucket (placeholder)
     // 4. Save metadata in DB
-    const riskAssessment = await prisma.riskAssessment.create({
-      data: {
-        userId,
-        companyBrandingId,
-        industry,
-        activityType,
-        location,
-        existingControlMeasures,
-        responsibleDepartments,
-        preparedBy,
-        preparedByOccupation,
-        reviewedBy,
-        reviewedByOccupation,
-        approvedBy,
-        approvedByOccupation,
-        gcpFileUrl: null,
-        generatedContent,
-      },
-    });
-    return { success: true, data: riskAssessment };
+    const data = {
+      userId,
+      companyBrandingId,
+      industry,
+      activityType,
+      location,
+      existingControlMeasures,
+      responsibleDepartments,
+      preparedBy,
+      preparedByOccupation,
+      reviewedBy,
+      reviewedByOccupation,
+      approvedBy,
+      approvedByOccupation,
+      gcpFileUrl: null,
+      generatedContent: parsedContent,
+    };
+
+    // const riskAssessment = await prisma.riskAssessment.create({
+    //   data,
+    // });
+
+    return { success: true, data: data };
   } catch (err) {
     throw new CustomError(
       err?.message || "Internal Server Error",
