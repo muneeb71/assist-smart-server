@@ -108,6 +108,7 @@ model RiskAssessment {
   approvedBy              String
   approvedByOccupation    String
   gcpFileUrl              String?
+  generatedContent        String?
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 }

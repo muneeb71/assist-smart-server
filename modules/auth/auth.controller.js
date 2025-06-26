@@ -49,7 +49,6 @@ export const verifyOtpController = async (req, res) => {
 
 export const getAccessLogsController = async (req, res) => {
   try {
-    // Prefer userId from req.user (if authenticated), else from query
     const userId = req.user?.userId || req.query.userId;
     if (!userId) return errorResponse(res, "User ID required", null, 400);
     const result = await getAccessLogsService({ userId: Number(userId) });
@@ -69,7 +68,8 @@ export const updateProfileController = async (req, res) => {
   try {
     const userId = req.user?.userId;
     if (!userId) return errorResponse(res, "Unauthorized", null, 401);
-    const { fullName, mobileNumber, gender, profilePicture } = req.body;
+    const { fullName, mobileNumber, gender } = req.body;
+    const profilePicture = req.file;
     const result = await updateProfileService({
       userId,
       fullName,
@@ -111,12 +111,18 @@ export const requestRoleAccessController = async (req, res) => {
     const userId = req.user?.userId;
     if (!userId) return errorResponse(res, "Unauthorized", null, 401);
     const { requestedRole } = req.body;
-    if (!requestedRole) return errorResponse(res, "Requested role is required", null, 400);
+    if (!requestedRole)
+      return errorResponse(res, "Requested role is required", null, 400);
     const result = await requestRoleAccessService({ userId, requestedRole });
     return successResponse(res, "Role access request submitted", result);
   } catch (err) {
     console.log(err);
-    return errorResponse(res, "Failed to request role access", err, err?.statusCode || 500);
+    return errorResponse(
+      res,
+      "Failed to request role access",
+      err,
+      err?.statusCode || 500
+    );
   }
 };
 
@@ -128,6 +134,11 @@ export const getDocumentHistoryController = async (req, res) => {
     return successResponse(res, "Document history fetched", result);
   } catch (err) {
     console.log(err);
-    return errorResponse(res, "Failed to fetch document history", err, err?.statusCode || 500);
+    return errorResponse(
+      res,
+      "Failed to fetch document history",
+      err,
+      err?.statusCode || 500
+    );
   }
 };
