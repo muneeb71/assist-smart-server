@@ -1,7 +1,14 @@
 import prisma from "../../config/prisma.js";
 import { CustomError } from "../../lib/customError.js";
-import { generateUsingGemini } from "../../lib/generateContent.js";
-import { getRiskAssessmentPrompt } from "../../lib/prompts.js";
+import {
+  generateUsingGemini,
+  streamUsingGemini,
+} from "../../lib/generateContent.js";
+import {
+  getRiskAssessmentPrompt,
+  getRiskAssessmentChapterTablePrompt,
+  getRiskAssessmentStructurePrompt,
+} from "../../lib/prompts.js";
 
 export const createRiskAssessmentService = async ({
   userId,
@@ -119,4 +126,87 @@ export const deleteRiskAssessmentService = async ({ id, userId }) => {
       err.statusCode || 500
     );
   }
+};
+
+export const streamRiskAssessmentService = async ({
+  userId,
+  companyBrandingId,
+  industry,
+  activityType,
+  location,
+  existingControlMeasures,
+  responsibleDepartments,
+  preparedBy,
+  preparedByOccupation,
+  reviewedBy,
+  reviewedByOccupation,
+  approvedBy,
+  approvedByOccupation,
+}) => {
+  const prompt = getRiskAssessmentPrompt(
+    industry,
+    activityType,
+    location,
+    existingControlMeasures,
+    responsibleDepartments
+  );
+  let fullText = "";
+  // This is an async generator
+  async function* stream() {
+    yield* (async function* () {
+      for await (const chunk of streamUsingGemini(prompt)) {
+        fullText += chunk;
+        yield chunk;
+      }
+    })();
+    // Save to DB after streaming is done
+    await prisma.riskAssessment.create({
+      data: {
+        userId,
+        companyBrandingId,
+        industry,
+        activityType,
+        location,
+        existingControlMeasures,
+        responsibleDepartments,
+        preparedBy,
+        preparedByOccupation,
+        reviewedBy,
+        reviewedByOccupation,
+        approvedBy,
+        approvedByOccupation,
+        gcpFileUrl: null,
+        generatedContent: fullText,
+      },
+    });
+  }
+  return stream();
+};
+
+export const generateRiskAssessmentStructureService = async ({ industry }) => {
+  const prompt = getRiskAssessmentStructurePrompt(industry);
+  const result = await generateUsingGemini(prompt);
+  let parsed = "";
+  try {
+    parsed = JSON.parse(result.replace(/^```json|^```|```$/gim, "").trim());
+  } catch (e) {
+    throw new CustomError("Failed to parse Gemini response as JSON", 500);
+  }
+  return parsed;
+};
+
+export const generateRiskAssessmentChapterTableService = async ({ chapterDetails }) => {
+  const promises = chapterDetails.map(async (c) => {
+    const prompt = getRiskAssessmentChapterTablePrompt(c.chapterName, c.activities);
+    const result = await generateUsingGemini(prompt);
+    let parsed;
+    try {
+      parsed = JSON.parse(result.replace(/^```json|^```|```$/gim, "").trim());
+    } catch (e) {
+      throw new CustomError(`Failed to parse Gemini response for chapter ${c.chapterName} as JSON`, 500);
+    }
+    return parsed;
+  });
+  const detailedChapters = await Promise.all(promises);
+  return detailedChapters;
 };
