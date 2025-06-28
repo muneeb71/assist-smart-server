@@ -150,8 +150,37 @@ export const streamRiskAssessmentService = async ({
     existingControlMeasures,
     responsibleDepartments
   );
+
+  const parsedUserId = Number(userId);
+  const parsedCompanyBrandingId = Number(companyBrandingId);
+
+  if (isNaN(parsedUserId)) {
+    throw new Error("Invalid userId: must be a number");
+  }
+  if (isNaN(parsedCompanyBrandingId)) {
+    throw new Error("Invalid companyBrandingId: must be a number");
+  }
+
+  let companyBrandingIdToUse = parsedCompanyBrandingId;
+
+  const companyBranding = await prisma.companyBranding.findUnique({
+    where: { id: parsedCompanyBrandingId },
+    select: { id: true },
+  });
+
+  if (!companyBranding) {
+    const newCompanyBranding = await prisma.companyBranding.create({
+      data: {
+        name: "Default Company Name",
+        documentControlNumber: "N/A",
+        logo: "",
+      },
+    });
+    companyBrandingIdToUse = newCompanyBranding.id;
+  }
+
   let fullText = "";
-  // This is an async generator
+
   async function* stream() {
     yield* (async function* () {
       for await (const chunk of streamUsingGemini(prompt)) {
@@ -159,11 +188,12 @@ export const streamRiskAssessmentService = async ({
         yield chunk;
       }
     })();
-    // Save to DB after streaming is done
+
+    // Save to DB after streaming completes
     await prisma.riskAssessment.create({
       data: {
-        userId,
-        companyBrandingId,
+        userId: parsedUserId,
+        companyBrandingId: parsedCompanyBrandingId,
         industry,
         activityType,
         location,
@@ -176,10 +206,11 @@ export const streamRiskAssessmentService = async ({
         approvedBy,
         approvedByOccupation,
         gcpFileUrl: null,
-        generatedContent: fullText,
+        // generatedContent: fullText,
       },
     });
   }
+
   return stream();
 };
 
@@ -195,15 +226,23 @@ export const generateRiskAssessmentStructureService = async ({ industry }) => {
   return parsed;
 };
 
-export const generateRiskAssessmentChapterTableService = async ({ chapterDetails }) => {
+export const generateRiskAssessmentChapterTableService = async ({
+  chapterDetails,
+}) => {
   const promises = chapterDetails.map(async (c) => {
-    const prompt = getRiskAssessmentChapterTablePrompt(c.chapterName, c.activities);
+    const prompt = getRiskAssessmentChapterTablePrompt(
+      c.chapterName,
+      c.activities
+    );
     const result = await generateUsingGemini(prompt);
     let parsed;
     try {
       parsed = JSON.parse(result.replace(/^```json|^```|```$/gim, "").trim());
     } catch (e) {
-      throw new CustomError(`Failed to parse Gemini response for chapter ${c.chapterName} as JSON`, 500);
+      throw new CustomError(
+        `Failed to parse Gemini response for chapter ${c.chapterName} as JSON`,
+        500
+      );
     }
     return parsed;
   });
