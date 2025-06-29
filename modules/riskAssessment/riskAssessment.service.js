@@ -31,7 +31,13 @@ export const createRiskAssessmentService = async ({
       activityType,
       location,
       existingControlMeasures,
-      responsibleDepartments
+      responsibleDepartments,
+      preparedBy,
+      preparedByOccupation,
+      reviewedBy,
+      reviewedByOccupation,
+      approvedBy,
+      approvedByOccupation
     );
     const generatedContent = await generateUsingGemini(prompt);
 
