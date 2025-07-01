@@ -1,6 +1,6 @@
 import { successResponse, errorResponse } from '../../lib/response.js';
 import {
-  createMethodStatementService,
+  streamMethodStatementService,
   listMethodStatementsService,
   getMethodStatementService,
   deleteMethodStatementService,
@@ -11,8 +11,12 @@ import {
 export const createMethodStatementController = async (req, res) => {
   try {
     const userId = req.user?.userId;
-    const result = await createMethodStatementService({ userId, ...req.body });
-    return successResponse(res, 'Method statement created', result);
+    const stream = await streamMethodStatementService({ userId, ...req.body });
+    res.setHeader('Content-Type', 'text/plain');
+    for await (const chunk of stream) {
+      res.write(chunk);
+    }
+    res.end();
   } catch (err) {
     console.log(err);
     return errorResponse(res, 'Failed to create method statement', err, err?.statusCode || 500);

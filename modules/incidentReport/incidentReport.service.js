@@ -1,5 +1,7 @@
 import prisma from '../../config/prisma.js';
 import { CustomError } from '../../lib/customError.js';
+import { getIncidentReportPrompt } from '../../lib/prompts.js';
+import { generateUsingGemini, streamUsingGemini } from '../../lib/generateContent.js';
 
 // Placeholder for GPT-4 and GCP integrations
 
@@ -70,4 +72,78 @@ export const deleteIncidentReportService = async ({ id, userId }) => {
   } catch (err) {
     throw new CustomError(err.message || 'Internal Server Error', err.statusCode || 500);
   }
+};
+
+export const streamIncidentReportService = async ({
+  userId,
+  companyBrandingId,
+  incidentType,
+  description,
+  date,
+  time,
+  location,
+}) => {
+  const prompt = getIncidentReportPrompt(
+    incidentType,
+    description,
+    date,
+    time,
+    location
+  );
+
+  const parsedUserId = Number(userId);
+  const parsedCompanyBrandingId = Number(companyBrandingId);
+
+  if (isNaN(parsedUserId)) {
+    throw new Error('Invalid userId: must be a number');
+  }
+  if (isNaN(parsedCompanyBrandingId)) {
+    throw new Error('Invalid companyBrandingId: must be a number');
+  }
+
+  let companyBrandingIdToUse = parsedCompanyBrandingId;
+
+  const companyBranding = await prisma.companyBranding.findUnique({
+    where: { id: parsedCompanyBrandingId },
+    select: { id: true },
+  });
+
+  if (!companyBranding) {
+    const newCompanyBranding = await prisma.companyBranding.create({
+      data: {
+        name: 'Default Company Name',
+        documentControlNumber: 'N/A',
+        logo: '',
+      },
+    });
+    companyBrandingIdToUse = newCompanyBranding.id;
+  }
+
+  let fullText = '';
+
+  async function* stream() {
+    yield* (async function* () {
+      for await (const chunk of streamUsingGemini(prompt)) {
+        fullText += chunk;
+        yield chunk;
+      }
+    })();
+
+    // Save to DB after streaming completes
+    await prisma.incidentReport.create({
+      data: {
+        userId: parsedUserId,
+        companyBrandingId: companyBrandingIdToUse,
+        incidentType,
+        description,
+        date: new Date(date),
+        time,
+        location,
+        gcpFileUrl: null,
+        // generatedContent: fullText,
+      },
+    });
+  }
+
+  return stream();
 }; 

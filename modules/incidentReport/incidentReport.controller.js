@@ -1,6 +1,6 @@
 import { successResponse, errorResponse } from '../../lib/response.js';
 import {
-  createIncidentReportService,
+  streamIncidentReportService,
   listIncidentReportsService,
   getIncidentReportService,
   deleteIncidentReportService,
@@ -9,8 +9,12 @@ import {
 export const createIncidentReportController = async (req, res) => {
   try {
     const userId = req.user?.userId;
-    const result = await createIncidentReportService({ userId, ...req.body });
-    return successResponse(res, 'Incident report created', result);
+    const stream = await streamIncidentReportService({ userId, ...req.body });
+    res.setHeader('Content-Type', 'text/plain');
+    for await (const chunk of stream) {
+      res.write(chunk);
+    }
+    res.end();
   } catch (err) {
     console.log(err);
     return errorResponse(res, 'Failed to create incident report', err, err?.statusCode || 500);

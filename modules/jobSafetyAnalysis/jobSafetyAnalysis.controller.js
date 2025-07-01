@@ -1,6 +1,6 @@
 import { successResponse, errorResponse } from '../../lib/response.js';
 import {
-  createJobSafetyAnalysisService,
+  streamJobSafetyAnalysisService,
   listJobSafetyAnalysesService,
   getJobSafetyAnalysisService,
   deleteJobSafetyAnalysisService,
@@ -9,8 +9,12 @@ import {
 export const createJobSafetyAnalysisController = async (req, res) => {
   try {
     const userId = req.user?.userId;
-    const result = await createJobSafetyAnalysisService({ userId, ...req.body });
-    return successResponse(res, 'Job safety analysis created', result);
+    const stream = await streamJobSafetyAnalysisService({ userId, ...req.body });
+    res.setHeader('Content-Type', 'text/plain');
+    for await (const chunk of stream) {
+      res.write(chunk);
+    }
+    res.end();
   } catch (err) {
     console.log(err);
     return errorResponse(res, 'Failed to create job safety analysis', err, err?.statusCode || 500);

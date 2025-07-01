@@ -4,13 +4,18 @@ import {
   listIncidentInvestigationsService,
   getIncidentInvestigationService,
   deleteIncidentInvestigationService,
+  streamIncidentInvestigationService,
 } from './incidentInvestigation.service.js';
 
 export const createIncidentInvestigationController = async (req, res) => {
   try {
     const userId = req.user?.userId;
-    const result = await createIncidentInvestigationService({ userId, ...req.body });
-    return successResponse(res, 'Incident investigation created', result);
+    const stream = await streamIncidentInvestigationService({ userId, ...req.body });
+    res.setHeader('Content-Type', 'text/plain');
+    for await (const chunk of stream) {
+      res.write(chunk);
+    }
+    res.end();
   } catch (err) {
     console.log(err);
     return errorResponse(res, 'Failed to create incident investigation', err, err?.statusCode || 500);

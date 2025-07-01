@@ -1,5 +1,7 @@
 import prisma from '../../config/prisma.js';
 import { CustomError } from '../../lib/customError.js';
+import { getMethodStatementPrompt } from '../../lib/prompts.js';
+import { generateUsingGemini, streamUsingGemini } from '../../lib/generateContent.js';
 
 // Placeholder for GPT-4 and GCP integrations
 
@@ -96,4 +98,85 @@ export const listSafetyMeasuresService = async () => {
   } catch (err) {
     throw new CustomError(err.message || 'Internal Server Error', err.statusCode || 500);
   }
+};
+
+export const streamMethodStatementService = async ({
+  userId,
+  companyBrandingId,
+  activityName,
+  toolsAndEquipment,
+  numberOfPeople,
+  activityBrief,
+  safetyMeasures = [],
+  staffPersons = [],
+}) => {
+  const prompt = getMethodStatementPrompt(
+    activityName,
+    toolsAndEquipment,
+    numberOfPeople,
+    activityBrief,
+    safetyMeasures,
+    staffPersons
+  );
+
+  const parsedUserId = Number(userId);
+  const parsedCompanyBrandingId = Number(companyBrandingId);
+
+  if (isNaN(parsedUserId)) {
+    throw new Error('Invalid userId: must be a number');
+  }
+  if (isNaN(parsedCompanyBrandingId)) {
+    throw new Error('Invalid companyBrandingId: must be a number');
+  }
+
+  let companyBrandingIdToUse = parsedCompanyBrandingId;
+
+  const companyBranding = await prisma.companyBranding.findUnique({
+    where: { id: parsedCompanyBrandingId },
+    select: { id: true },
+  });
+
+  if (!companyBranding) {
+    const newCompanyBranding = await prisma.companyBranding.create({
+      data: {
+        name: 'Default Company Name',
+        documentControlNumber: 'N/A',
+        logo: '',
+      },
+    });
+    companyBrandingIdToUse = newCompanyBranding.id;
+  }
+
+  let fullText = '';
+
+  async function* stream() {
+    yield* (async function* () {
+      for await (const chunk of streamUsingGemini(prompt)) {
+        fullText += chunk;
+        yield chunk;
+      }
+    })();
+
+    // Save to DB after streaming completes
+    await prisma.methodStatement.create({
+      data: {
+        userId: parsedUserId,
+        companyBrandingId: companyBrandingIdToUse,
+        activityName,
+        toolsAndEquipment,
+        numberOfPeople,
+        activityBrief,
+        gcpFileUrl: null,
+        // generatedContent: fullText,
+        safetyMeasures: {
+          create: safetyMeasures.map((name) => ({ name })),
+        },
+        staffPersons: {
+          create: staffPersons.map(({ name, position, mobileNumber }) => ({ name, position, mobileNumber })),
+        },
+      },
+    });
+  }
+
+  return stream();
 }; 

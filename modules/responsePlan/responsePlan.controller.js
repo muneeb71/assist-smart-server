@@ -1,6 +1,6 @@
 import { successResponse, errorResponse } from '../../lib/response.js';
 import {
-  createResponsePlanService,
+  streamResponsePlanService,
   listResponsePlansService,
   getResponsePlanService,
   deleteResponsePlanService,
@@ -9,8 +9,12 @@ import {
 export const createResponsePlanController = async (req, res) => {
   try {
     const userId = req.user?.userId;
-    const result = await createResponsePlanService({ userId, ...req.body });
-    return successResponse(res, 'Response plan created', result);
+    const stream = await streamResponsePlanService({ userId, ...req.body });
+    res.setHeader('Content-Type', 'text/plain');
+    for await (const chunk of stream) {
+      res.write(chunk);
+    }
+    res.end();
   } catch (err) {
     console.log(err);
     return errorResponse(res, 'Failed to create response plan', err, err?.statusCode || 500);

@@ -1,5 +1,7 @@
 import prisma from '../../config/prisma.js';
 import { CustomError } from '../../lib/customError.js';
+import { getIncidentInvestigationPrompt } from '../../lib/prompts.js';
+import { generateUsingGemini, streamUsingGemini } from '../../lib/generateContent.js';
 
 // Placeholder for GPT-4 and GCP integrations
 
@@ -126,4 +128,120 @@ export const deleteIncidentInvestigationService = async ({ id, userId }) => {
   } catch (err) {
     throw new CustomError(err.message || 'Internal Server Error', err.statusCode || 500);
   }
+};
+
+export const streamIncidentInvestigationService = async ({
+  userId,
+  companyBrandingId,
+  incidentCategory,
+  description,
+  date,
+  time,
+  location,
+  supervisor,
+  reportedBy,
+  incidentDetails,
+  investigationDetails,
+  participants = [],
+  witnesses = [],
+  departments = [],
+  immediateCausesUnsafeActs = [],
+  immediateCausesUnsafeConditions = [],
+  rootCausesPersonalFactors = [],
+}) => {
+  const prompt = getIncidentInvestigationPrompt(
+    incidentCategory,
+    description,
+    date,
+    time,
+    location,
+    supervisor,
+    reportedBy,
+    incidentDetails,
+    investigationDetails,
+    participants,
+    witnesses,
+    departments,
+    immediateCausesUnsafeActs,
+    immediateCausesUnsafeConditions,
+    rootCausesPersonalFactors
+  );
+
+  const parsedUserId = Number(userId);
+  const parsedCompanyBrandingId = Number(companyBrandingId);
+
+  if (isNaN(parsedUserId)) {
+    throw new Error('Invalid userId: must be a number');
+  }
+  if (isNaN(parsedCompanyBrandingId)) {
+    throw new Error('Invalid companyBrandingId: must be a number');
+  }
+
+  let companyBrandingIdToUse = parsedCompanyBrandingId;
+
+  const companyBranding = await prisma.companyBranding.findUnique({
+    where: { id: parsedCompanyBrandingId },
+    select: { id: true },
+  });
+
+  if (!companyBranding) {
+    const newCompanyBranding = await prisma.companyBranding.create({
+      data: {
+        name: 'Default Company Name',
+        documentControlNumber: 'N/A',
+        logo: '',
+      },
+    });
+    companyBrandingIdToUse = newCompanyBranding.id;
+  }
+
+  let fullText = '';
+
+  async function* stream() {
+    yield* (async function* () {
+      for await (const chunk of streamUsingGemini(prompt)) {
+        fullText += chunk;
+        yield chunk;
+      }
+    })();
+
+    // Save to DB after streaming completes
+    await prisma.incidentInvestigation.create({
+      data: {
+        userId: parsedUserId,
+        companyBrandingId: companyBrandingIdToUse,
+        incidentCategory,
+        description,
+        date: new Date(date),
+        time,
+        location,
+        supervisor,
+        reportedBy,
+        incidentDetails,
+        investigationDetails,
+        gcpFileUrl: null,
+        // generatedContent: fullText,
+        participants: {
+          create: participants.map((name) => ({ name })),
+        },
+        witnesses: {
+          create: witnesses.map((name) => ({ name })),
+        },
+        departments: {
+          create: departments.map((name) => ({ name })),
+        },
+        immediateCausesUnsafeActs: {
+          create: immediateCausesUnsafeActs.map((name) => ({ name })),
+        },
+        immediateCausesUnsafeConditions: {
+          create: immediateCausesUnsafeConditions.map((name) => ({ name })),
+        },
+        rootCausesPersonalFactors: {
+          create: rootCausesPersonalFactors.map((name) => ({ name })),
+        },
+      },
+    });
+  }
+
+  return stream();
 }; 
