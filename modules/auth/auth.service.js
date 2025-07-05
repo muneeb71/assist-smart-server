@@ -31,6 +31,73 @@ export const requestOtpService = async ({ email }) => {
     );
   }
 };
+export const getTokenProviderLoginService = async ({
+  name,
+  email,
+  image,
+  roleName,
+  browser,
+  city,
+  country,
+}) => {
+  try {
+    let role = await prisma.role.findUnique({
+      where: { name: roleName },
+    });
+
+    if (!role) {
+      role = await prisma.role.create({
+        data: { name: roleName },
+      });
+    }
+
+    let user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          fullName: name || "New User",
+          email,
+          profilePicture: image || "",
+          roleId: role.id,
+        },
+      });
+    }
+
+    if (!user) throw new CustomError("User not found", 404);
+
+    const token = generateToken({
+      User: { id: user.id, role: { name: role.name } },
+    });
+
+    console.log("LOG", browser && city && country ? "Access log created" : "No access log");
+
+    if (browser && city && country) {
+      await createAccessLogService({ userId: user.id, browser, city, country });
+    }
+
+    return {
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.fullName,
+          role: role.name,
+          profilePicture: user.profilePicture,
+          mobileNumber: user.mobileNumber,
+          gender: user.gender,
+        },
+        token,
+      },
+    };
+  } catch (err) {
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
+  }
+};
 
 export const verifyOtpService = async ({
   email,
@@ -137,18 +204,31 @@ export const updateProfileService = async ({
   fullName,
   mobileNumber,
   gender,
+  email,
   profilePicture,
 }) => {
   try {
-    const gcpUrl = await uploadFileToGCP(
-      profilePicture.buffer,
-      profilePicture.originalname,
-      "profile-pictures"
-    );
+    let data = {
+      fullName,
+      mobileNumber,
+      gender,
+      email,
+    };
+
+    if (profilePicture) {
+      const gcpUrl = await uploadFileToGCP(
+        profilePicture.buffer,
+        profilePicture.originalname,
+        "profile-pictures"
+      );
+      data.profilePicture = gcpUrl;
+    }
     const user = await prisma.user.update({
       where: { id: userId },
-      data: { fullName, mobileNumber, gender, profilePicture: gcpUrl },
+      data,
     });
+
+    console.log("USRE", user);
     return { success: true, data: user };
   } catch (err) {
     throw new CustomError(

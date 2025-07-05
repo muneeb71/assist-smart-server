@@ -7,6 +7,7 @@ import {
   deleteAccountService,
   requestRoleAccessService,
   getDocumentHistoryService,
+  getTokenProviderLoginService,
 } from "./auth.service.js";
 
 export const requestOtpController = async (req, res) => {
@@ -68,13 +69,14 @@ export const updateProfileController = async (req, res) => {
   try {
     const userId = req.user?.userId;
     if (!userId) return errorResponse(res, "Unauthorized", null, 401);
-    const { fullName, mobileNumber, gender } = req.body;
+    const { fullName, mobileNumber, gender, email } = req.body;
     const profilePicture = req.file;
     const result = await updateProfileService({
       userId,
       fullName,
       mobileNumber,
       gender,
+      email,
       profilePicture,
     });
     return successResponse(res, "Profile updated", result);
@@ -137,6 +139,31 @@ export const getDocumentHistoryController = async (req, res) => {
     return errorResponse(
       res,
       "Failed to fetch document history",
+      err,
+      err?.statusCode || 500
+    );
+  }
+};
+
+export const providerLoginController = async (req, res) => {
+  try {
+    const { name, email, role, image, browser, city, country } = req.body;
+    const result = await getTokenProviderLoginService({
+      name,
+      email,
+      roleName: role,
+      image,
+      browser,
+      city,
+      country,
+    });
+
+    return successResponse(res, "Login successful", result);
+  } catch (err) {
+    console.log(err);
+    return errorResponse(
+      res,
+      "Failed to get token",
       err,
       err?.statusCode || 500
     );

@@ -8,12 +8,14 @@ import {
   deleteAccountController,
   requestRoleAccessController,
   getDocumentHistoryController,
+  providerLoginController,
 } from "./auth.controller.js";
 import { upload } from "../../middlewares/upload.js";
 
 const router = express.Router();
 
 router.post("/request-otp", requestOtpController);
+router.post("/provider-login", providerLoginController);
 router.post("/verify-otp", verifyOtpController);
 router.get("/access-logs", authenticate, getAccessLogsController);
 router.put(
