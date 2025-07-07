@@ -288,8 +288,6 @@ model IncidentInvestigation {
   location                        String
   supervisor                      String
   reportedBy                      String
-  incidentDetails                 String
-  investigationDetails            String
   gcpFileUrl                      String?
   createdAt                       DateTime                                             @default(now())
   updatedAt                       DateTime                                             @updatedAt

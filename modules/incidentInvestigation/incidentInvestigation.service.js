@@ -1,7 +1,10 @@
-import prisma from '../../config/prisma.js';
-import { CustomError } from '../../lib/customError.js';
-import { getIncidentInvestigationPrompt } from '../../lib/prompts.js';
-import { generateUsingGemini, streamUsingGemini } from '../../lib/generateContent.js';
+import prisma from "../../config/prisma.js";
+import { CustomError } from "../../lib/customError.js";
+import { getIncidentInvestigationPrompt } from "../../lib/prompts.js";
+import {
+  generateUsingGemini,
+  streamUsingGemini,
+} from "../../lib/generateContent.js";
 
 // Placeholder for GPT-4 and GCP integrations
 
@@ -70,7 +73,10 @@ export const createIncidentInvestigationService = async ({
     });
     return { success: true, data: incidentInvestigation };
   } catch (err) {
-    throw new CustomError(err.message || 'Internal Server Error', err.statusCode || 500);
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
   }
 };
 
@@ -78,7 +84,7 @@ export const listIncidentInvestigationsService = async ({ userId }) => {
   try {
     const list = await prisma.incidentInvestigation.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         participants: true,
         witnesses: true,
@@ -91,7 +97,10 @@ export const listIncidentInvestigationsService = async ({ userId }) => {
     });
     return { success: true, data: list };
   } catch (err) {
-    throw new CustomError(err.message || 'Internal Server Error', err.statusCode || 500);
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
   }
 };
 
@@ -109,10 +118,13 @@ export const getIncidentInvestigationService = async ({ id, userId }) => {
         companyBranding: true,
       },
     });
-    if (!doc) throw new CustomError('Not found', 404);
+    if (!doc) throw new CustomError("Not found", 404);
     return { success: true, data: doc };
   } catch (err) {
-    throw new CustomError(err.message || 'Internal Server Error', err.statusCode || 500);
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
   }
 };
 
@@ -122,7 +134,10 @@ export const deleteIncidentInvestigationService = async ({ id, userId }) => {
     await prisma.incidentInvestigation.delete({ where: { id } });
     return { success: true };
   } catch (err) {
-    throw new CustomError(err.message || 'Internal Server Error', err.statusCode || 500);
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
   }
 };
 
@@ -143,30 +158,22 @@ export const streamIncidentInvestigationService = async ({
   immediateCausesUnsafeConditions = [],
   rootCausesPersonalFactors = [],
 }) => {
-  const prompt = getIncidentInvestigationPrompt(
+  const prompt = getIncidentInvestigationPrompt({
     incidentCategory,
     description,
-    date,
-    time,
-    location,
-    supervisor,
-    reportedBy,
-    participants,
-    witnesses,
-    departments,
     immediateCausesUnsafeActs,
     immediateCausesUnsafeConditions,
-    rootCausesPersonalFactors
-  );
+    rootCausesPersonalFactors,
+  });
 
   const parsedUserId = Number(userId);
   const parsedCompanyBrandingId = Number(companyBrandingId);
 
   if (isNaN(parsedUserId)) {
-    throw new Error('Invalid userId: must be a number');
+    throw new Error("Invalid userId: must be a number");
   }
   if (isNaN(parsedCompanyBrandingId)) {
-    throw new Error('Invalid companyBrandingId: must be a number');
+    throw new Error("Invalid companyBrandingId: must be a number");
   }
 
   let companyBrandingIdToUse = parsedCompanyBrandingId;
@@ -179,15 +186,15 @@ export const streamIncidentInvestigationService = async ({
   if (!companyBranding) {
     const newCompanyBranding = await prisma.companyBranding.create({
       data: {
-        name: 'Default Company Name',
-        documentControlNumber: 'N/A',
-        logo: '',
+        name: "Default Company Name",
+        documentControlNumber: "N/A",
+        logo: "",
       },
     });
     companyBrandingIdToUse = newCompanyBranding.id;
   }
 
-  let fullText = '';
+  let fullText = "";
 
   async function* stream() {
     yield* (async function* () {
@@ -197,7 +204,6 @@ export const streamIncidentInvestigationService = async ({
       }
     })();
 
-    // Save to DB after streaming completes
     await prisma.incidentInvestigation.create({
       data: {
         userId: parsedUserId,
@@ -210,7 +216,6 @@ export const streamIncidentInvestigationService = async ({
         supervisor,
         reportedBy,
         gcpFileUrl: null,
-        // generatedContent: fullText,
         participants: {
           create: participants.map((name) => ({ name })),
         },
@@ -231,7 +236,10 @@ export const streamIncidentInvestigationService = async ({
         },
       },
     });
+
+    // Optionally save fullText if you want to persist the generated output
+    // parsed JSON version could be saved separately after post-processing
   }
 
   return stream();
-}; 
+};
