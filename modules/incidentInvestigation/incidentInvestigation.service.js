@@ -25,10 +25,6 @@ export const createIncidentInvestigationService = async ({
   rootCausesPersonalFactors = [], // array of names
 }) => {
   try {
-    // 1. Generate content with GPT-4 (placeholder)
-    // 2. Fill doc template (placeholder)
-    // 3. Upload to GCP bucket (placeholder)
-    // 4. Save metadata in DB
     const incidentInvestigation = await prisma.incidentInvestigation.create({
       data: {
         userId,
@@ -140,8 +136,6 @@ export const streamIncidentInvestigationService = async ({
   location,
   supervisor,
   reportedBy,
-  incidentDetails,
-  investigationDetails,
   participants = [],
   witnesses = [],
   departments = [],
@@ -157,8 +151,6 @@ export const streamIncidentInvestigationService = async ({
     location,
     supervisor,
     reportedBy,
-    incidentDetails,
-    investigationDetails,
     participants,
     witnesses,
     departments,
@@ -217,8 +209,6 @@ export const streamIncidentInvestigationService = async ({
         location,
         supervisor,
         reportedBy,
-        incidentDetails,
-        investigationDetails,
         gcpFileUrl: null,
         // generatedContent: fullText,
         participants: {
