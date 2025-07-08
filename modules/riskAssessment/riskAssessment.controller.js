@@ -4,8 +4,7 @@ import {
   listRiskAssessmentsService,
   getRiskAssessmentService,
   deleteRiskAssessmentService,
-  generateRiskAssessmentStructureService,
-  generateRiskAssessmentChapterTableService,
+  updateRiskAssessmentService,
 } from "./riskAssessment.service.js";
 
 export const createRiskAssessmentController = async (req, res) => {
@@ -81,64 +80,18 @@ export const deleteRiskAssessmentController = async (req, res) => {
   }
 };
 
-export const generateRiskAssessmentStructure = async (req, res) => {
+export const updateRiskAssessmentController = async (req, res) => {
   try {
-    const {
-      industry,
-      activityType,
-      location,
-      existingControlMeasures,
-      responsibleDepartments,
-    } = req.body;
-    if (!industry || !activityType || !location) {
-      return errorResponse(
-        res,
-        "Missing required fields",
-        err,
-        err?.statusCode || 500
-      );
-    }
-    const structure = await generateRiskAssessmentStructureService({
-      industry,
-      activityType,
-      location,
-      existingControlMeasures,
-      responsibleDepartments,
-    });
-    return successResponse(
-      res,
-      "Risk assessments structure created",
-      structure
-    );
+    const userId = req.user?.userId;
+    const { id } = req.params;
+    const updateData = req.body;
+    const result = await updateRiskAssessmentService({ id: Number(id), userId, updateData });
+    return successResponse(res, "Risk assessment updated", result);
   } catch (err) {
+    console.log(err);
     return errorResponse(
       res,
-      "Failed to delete risk assessment",
-      err,
-      err?.statusCode || 500
-    );
-  }
-};
-
-export const generateRiskAssessmentChapterTable = async (req, res) => {
-  try {
-    const { chapterDetails } = req.body;
-    if (!chapterDetails) {
-      return errorResponse(
-        res,
-        "Missing required fields",
-        err,
-        err?.statusCode || 500
-      );
-    }
-    const content = await generateRiskAssessmentChapterTableService({
-      chapterDetails,
-    });
-    return successResponse(res, "Risk assessment content created", content);
-  } catch (err) {
-    return errorResponse(
-      res,
-      "Failed to delete risk assessment",
+      "Failed to update risk assessment",
       err,
       err?.statusCode || 500
     );

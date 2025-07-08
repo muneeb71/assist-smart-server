@@ -243,3 +243,18 @@ export const streamIncidentInvestigationService = async ({
 
   return stream();
 };
+
+export const updateIncidentInvestigationService = async ({ id, userId, updateData }) => {
+  try {
+    // Ensure the document exists and belongs to the user
+    const existing = await prisma.incidentInvestigation.findFirst({ where: { id, userId } });
+    if (!existing) throw new CustomError('Not found', 404);
+    const updated = await prisma.incidentInvestigation.update({
+      where: { id },
+      data: updateData,
+    });
+    return { success: true, data: updated };
+  } catch (err) {
+    throw new CustomError(err.message || 'Internal Server Error', err.statusCode || 500);
+  }
+};

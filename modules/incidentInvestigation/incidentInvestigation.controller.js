@@ -5,6 +5,7 @@ import {
   getIncidentInvestigationService,
   deleteIncidentInvestigationService,
   streamIncidentInvestigationService,
+  updateIncidentInvestigationService,
 } from './incidentInvestigation.service.js';
 
 export const createIncidentInvestigationController = async (req, res) => {
@@ -54,5 +55,18 @@ export const deleteIncidentInvestigationController = async (req, res) => {
   } catch (err) {
     console.log(err);
     return errorResponse(res, 'Failed to delete incident investigation', err, err?.statusCode || 500);
+  }
+};
+
+export const updateIncidentInvestigationController = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    const { id } = req.params;
+    const updateData = req.body;
+    const result = await updateIncidentInvestigationService({ id: Number(id), userId, updateData });
+    return successResponse(res, 'Incident investigation updated', result);
+  } catch (err) {
+    console.log(err);
+    return errorResponse(res, 'Failed to update incident investigation', err, err?.statusCode || 500);
   }
 }; 
