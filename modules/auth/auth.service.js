@@ -7,21 +7,20 @@ import { uploadFileToGCP } from "../../lib/gcpUpload.js";
 
 export const requestOtpService = async ({ email }) => {
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) throw new CustomError("User not found", 404);
+    // const user = await prisma.user.findUnique({ where: { email } });
+    // if (!user) throw new CustomError("User not found", 404);
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    await prisma.otp.create({
-      data: {
-        code: otp,
-        userId: user.id,
-        expiresAt,
-      },
-    });
-    console.log(otp);
-
+    // await prisma.otp.create({
+    //   data: {
+    //     code: otp,
+    //     userId: user.id,
+    //     expiresAt,
+    //   },
+    // });
+   
     await sendOtpToEmail(email, otp);
     return { success: true };
   } catch (err) {
