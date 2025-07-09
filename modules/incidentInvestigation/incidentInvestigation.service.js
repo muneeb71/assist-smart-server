@@ -20,12 +20,12 @@ export const createIncidentInvestigationService = async ({
   reportedBy,
   incidentDetails,
   investigationDetails,
-  participants = [], // array of names
-  witnesses = [], // array of names
-  departments = [], // array of names
-  immediateCausesUnsafeActs = [], // array of names
-  immediateCausesUnsafeConditions = [], // array of names
-  rootCausesPersonalFactors = [], // array of names
+  participants = [],
+  witnesses = [],
+  departments = [],
+  immediateCausesUnsafeActs = [],
+  immediateCausesUnsafeConditions = [],
+  rootCausesPersonalFactors = [],
 }) => {
   try {
     const incidentInvestigation = await prisma.incidentInvestigation.create({
@@ -41,7 +41,7 @@ export const createIncidentInvestigationService = async ({
         reportedBy,
         incidentDetails,
         investigationDetails,
-        gcpFileUrl: null, // Set after upload
+        generatedContent: "",
         participants: {
           create: participants.map((name) => ({ name })),
         },
@@ -157,6 +157,7 @@ export const streamIncidentInvestigationService = async ({
   immediateCausesUnsafeActs = [],
   immediateCausesUnsafeConditions = [],
   rootCausesPersonalFactors = [],
+  evidenceUrls = [],
 }) => {
   const prompt = getIncidentInvestigationPrompt({
     incidentCategory,
@@ -169,15 +170,12 @@ export const streamIncidentInvestigationService = async ({
   const parsedUserId = Number(userId);
   const parsedCompanyBrandingId = Number(companyBrandingId);
 
-  if (isNaN(parsedUserId)) {
-    throw new Error("Invalid userId: must be a number");
-  }
-  if (isNaN(parsedCompanyBrandingId)) {
+  if (isNaN(parsedUserId)) throw new Error("Invalid userId: must be a number");
+  if (isNaN(parsedCompanyBrandingId))
     throw new Error("Invalid companyBrandingId: must be a number");
-  }
 
+  // Ensure valid company branding
   let companyBrandingIdToUse = parsedCompanyBrandingId;
-
   const companyBranding = await prisma.companyBranding.findUnique({
     where: { id: parsedCompanyBrandingId },
     select: { id: true },
@@ -196,6 +194,43 @@ export const streamIncidentInvestigationService = async ({
 
   let fullText = "";
 
+  // Create the investigation record early with empty generatedContent
+  const createdIncident = await prisma.incidentInvestigation.create({
+    data: {
+      userId: parsedUserId,
+      companyBrandingId: companyBrandingIdToUse,
+      incidentCategory,
+      description,
+      date: new Date(date),
+      time,
+      location,
+      supervisor,
+      reportedBy,
+      generatedContent: "", // will be updated later
+      participants: {
+        create: participants.map((name) => ({ name })),
+      },
+      witnesses: {
+        create: witnesses.map((name) => ({ name })),
+      },
+      departments: {
+        create: departments.map((name) => ({ name })),
+      },
+      immediateCausesUnsafeActs: {
+        create: immediateCausesUnsafeActs.map((name) => ({ name })),
+      },
+      immediateCausesUnsafeConditions: {
+        create: immediateCausesUnsafeConditions.map((name) => ({ name })),
+      },
+      rootCausesPersonalFactors: {
+        create: rootCausesPersonalFactors.map((name) => ({ name })),
+      },
+      evidenceFiles: {
+        create: evidenceUrls.map((url) => ({ url })),
+      },
+    },
+  });
+
   async function* stream() {
     yield* (async function* () {
       for await (const chunk of streamUsingGemini(prompt)) {
@@ -204,57 +239,38 @@ export const streamIncidentInvestigationService = async ({
       }
     })();
 
-    await prisma.incidentInvestigation.create({
+    // Save generatedContent after full stream
+    await prisma.incidentInvestigation.update({
+      where: { id: createdIncident.id },
       data: {
-        userId: parsedUserId,
-        companyBrandingId: companyBrandingIdToUse,
-        incidentCategory,
-        description,
-        date: new Date(date),
-        time,
-        location,
-        supervisor,
-        reportedBy,
-        gcpFileUrl: null,
-        participants: {
-          create: participants.map((name) => ({ name })),
-        },
-        witnesses: {
-          create: witnesses.map((name) => ({ name })),
-        },
-        departments: {
-          create: departments.map((name) => ({ name })),
-        },
-        immediateCausesUnsafeActs: {
-          create: immediateCausesUnsafeActs.map((name) => ({ name })),
-        },
-        immediateCausesUnsafeConditions: {
-          create: immediateCausesUnsafeConditions.map((name) => ({ name })),
-        },
-        rootCausesPersonalFactors: {
-          create: rootCausesPersonalFactors.map((name) => ({ name })),
-        },
+        generatedContent: fullText,
       },
     });
-
-    // Optionally save fullText if you want to persist the generated output
-    // parsed JSON version could be saved separately after post-processing
   }
 
   return stream();
 };
 
-export const updateIncidentInvestigationService = async ({ id, userId, updateData }) => {
+export const updateIncidentInvestigationService = async ({
+  id,
+  userId,
+  updateData,
+}) => {
   try {
     // Ensure the document exists and belongs to the user
-    const existing = await prisma.incidentInvestigation.findFirst({ where: { id, userId } });
-    if (!existing) throw new CustomError('Not found', 404);
+    const existing = await prisma.incidentInvestigation.findFirst({
+      where: { id, userId },
+    });
+    if (!existing) throw new CustomError("Not found", 404);
     const updated = await prisma.incidentInvestigation.update({
       where: { id },
       data: updateData,
     });
     return { success: true, data: updated };
   } catch (err) {
-    throw new CustomError(err.message || 'Internal Server Error', err.statusCode || 500);
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
   }
 };

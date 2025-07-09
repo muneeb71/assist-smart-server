@@ -278,6 +278,15 @@ model SitePermissionParticipant {
   sitePermission   SitePermission @relation(fields: [sitePermissionId], references: [id])
 }
 
+model IncidentInvestigationEvidence {
+  id                      Int      @id @default(autoincrement())
+  incidentInvestigationId Int
+  url                     String
+  createdAt               DateTime @default(now())
+
+  incidentInvestigation IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id])
+}
+
 model IncidentInvestigation {
   id                              Int                                                  @id @default(autoincrement())
   userId                          Int
@@ -289,7 +298,7 @@ model IncidentInvestigation {
   location                        String
   supervisor                      String
   reportedBy                      String
-  gcpFileUrl                      String?
+  generatedContent                String?
   createdAt                       DateTime                                             @default(now())
   updatedAt                       DateTime                                             @updatedAt
   companyBranding                 CompanyBranding                                      @relation(fields: [companyBrandingId], references: [id])
@@ -300,6 +309,7 @@ model IncidentInvestigation {
   participants                    IncidentInvestigationParticipant[]
   rootCausesPersonalFactors       IncidentInvestigationRootCausePersonalFactor[]
   witnesses                       IncidentInvestigationWitness[]
+  evidenceFiles                   IncidentInvestigationEvidence[]
 }
 
 model IncidentInvestigationParticipant {
@@ -360,12 +370,12 @@ model LegalRegister {
 }
 
 model AuditLog {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  action      String   // e.g., CREATE, UPDATE, DELETE, REVIEW, APPROVE, REJECT
-  documentType String  // e.g., RiskAssessment, IncidentReport, etc.
-  documentId  Int
-  details     Json?
-  createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id])
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  action       String // e.g., CREATE, UPDATE, DELETE, REVIEW, APPROVE, REJECT
+  documentType String // e.g., RiskAssessment, IncidentReport, etc.
+  documentId   Int
+  details      Json?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id])
 }

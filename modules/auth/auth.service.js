@@ -9,6 +9,20 @@ export const requestOtpService = async ({ email }) => {
   try {
     let user = await prisma.user.findUnique({ where: { email } });
 
+    if (!user) {
+      const defaultRole = await prisma.role.findFirst({
+        where: { name: "employee" },
+      });
+      user = await prisma.user.create({
+        data: {
+          email,
+          fullName: email.split("@")[0],
+          roleId: defaultRole ? defaultRole.id : undefined,
+        },
+        include: { role: true },
+      });
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
     if (user) {

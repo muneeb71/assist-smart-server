@@ -3,7 +3,14 @@ import { CustomError } from "../../lib/customError.js";
 
 export const createCompanyBrandingService = async (data) => {
   try {
-    const branding = await prisma.companyBranding.create({ data });
+    console.log("DATA", data);
+    const branding = await prisma.companyBranding.create({
+      data: {
+        name: data.name,
+        logo: data.logo,
+        documentControlNumber: data.documentControlNumber,
+      },
+    });
     return { success: true, data: branding };
   } catch (err) {
     throw new CustomError(
