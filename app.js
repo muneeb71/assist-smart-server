@@ -13,6 +13,7 @@ import { incidentReportRouter } from "./modules/incidentReport/index.js";
 import { sitePermissionRouter } from "./modules/sitePermission/index.js";
 import { incidentInvestigationRouter } from "./modules/incidentInvestigation/index.js";
 import { legalRegisterRouter } from "./modules/legalRegister/index.js";
+import { adminRouter } from './modules/admin/index.js';
 
 dotenv.config();
 const app = express();
@@ -37,6 +38,7 @@ app.use("/api/v1/incident-reports", incidentReportRouter);
 app.use("/api/v1/site-permissions", sitePermissionRouter);
 app.use("/api/v1/incident-investigations", incidentInvestigationRouter);
 app.use("/api/v1/legal-registers", legalRegisterRouter);
+app.use('/admin', adminRouter);
 
 app.listen(port, () => {
   console.log("=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-==-");

@@ -36,6 +36,7 @@ model User {
   sitePermissions        SitePermission[]
   toolboxTalks           ToolboxTalk[]
   legalRegisters         LegalRegister[]
+  auditLogs              AuditLog[]
   role                   Role                    @relation(fields: [roleId], references: [id])
 }
 
@@ -356,4 +357,15 @@ model LegalRegister {
 
   userId Int?
   user   User? @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  action      String   // e.g., CREATE, UPDATE, DELETE, REVIEW, APPROVE, REJECT
+  documentType String  // e.g., RiskAssessment, IncidentReport, etc.
+  documentId  Int
+  details     Json?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
 }
