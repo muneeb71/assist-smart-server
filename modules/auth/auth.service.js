@@ -126,7 +126,7 @@ export const verifyOtpService = async ({
         include: { role: true },
       });
     }
- 
+
     const otpRecord = await prisma.otp.findFirst({
       where: {
         code: otp,
@@ -176,14 +176,31 @@ export const createAccessLogService = async ({
   country,
 }) => {
   try {
-    const log = await prisma.accessLog.create({
-      data: {
+    const existingLog = await prisma.accessLog.findFirst({
+      where: {
         userId,
         browser,
         city,
         country,
       },
+      orderBy: { createdAt: "desc" },
     });
+    let log;
+    if (existingLog) {
+      log = await prisma.accessLog.update({
+        where: { id: existingLog.id },
+        data: { createdAt: new Date() },
+      });
+    } else {
+      log = await prisma.accessLog.create({
+        data: {
+          userId,
+          browser,
+          city,
+          country,
+        },
+      });
+    }
     return { success: true, data: log };
   } catch (err) {
     throw new CustomError(
