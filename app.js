@@ -21,11 +21,18 @@ const app = express();
 
 app.use(cors());
 
+
+app.get('/admin', (req, res) => {
+  res.redirect('/admin/resources/User');
+});
+
+app.use(adminJs.options.rootPath, adminUiRouter);
+
 app.use(logger("dev"));
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(cookieParser());
-// app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static('public'));
 
 const port = process.env.PORT || 8082;
 
@@ -39,9 +46,7 @@ app.use("/api/v1/incident-reports", incidentReportRouter);
 app.use("/api/v1/site-permissions", sitePermissionRouter);
 app.use("/api/v1/incident-investigations", incidentInvestigationRouter);
 app.use("/api/v1/legal-registers", legalRegisterRouter);
-app.use("/admin", adminRouter);
-
-app.use(adminJs.options.rootPath, adminUiRouter);
+app.use("/api/v1/admin", adminRouter);
 
 app.listen(port, () => {
   console.log("=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-==-");
