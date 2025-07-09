@@ -7,20 +7,19 @@ import { uploadFileToGCP } from "../../lib/gcpUpload.js";
 
 export const requestOtpService = async ({ email }) => {
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) throw new CustomError("User not found", 404);
+    let user = await prisma.user.findUnique({ where: { email } });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-    await prisma.otp.create({
-      data: {
-        code: otp,
-        userId: user.id,
-        expiresAt,
-      },
-    });
-   
+    if (user) {
+      await prisma.otp.create({
+        data: {
+          code: otp,
+          userId: user.id,
+          expiresAt,
+        },
+      });
+    }
     await sendOtpToEmail(email, otp);
     return { success: true };
   } catch (err) {
@@ -69,7 +68,10 @@ export const getTokenProviderLoginService = async ({
       User: { id: user.id, role: { name: role.name } },
     });
 
-    console.log("LOG", browser && city && country ? "Access log created" : "No access log");
+    console.log(
+      "LOG",
+      browser && city && country ? "Access log created" : "No access log"
+    );
 
     if (browser && city && country) {
       await createAccessLogService({ userId: user.id, browser, city, country });
@@ -106,15 +108,27 @@ export const verifyOtpService = async ({
   country,
 }) => {
   try {
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { email },
       include: { role: true },
     });
-    if (!user) throw new CustomError("User not found", 404);
-
+    // If user doesn't exist, create it (default role: 'employee')
+    if (!user) {
+      const defaultRole = await prisma.role.findFirst({
+        where: { name: "employee" },
+      });
+      user = await prisma.user.create({
+        data: {
+          email,
+          fullName: email.split("@")[0],
+          roleId: defaultRole ? defaultRole.id : undefined,
+        },
+        include: { role: true },
+      });
+    }
+ 
     const otpRecord = await prisma.otp.findFirst({
       where: {
-        userId: user.id,
         code: otp,
         used: false,
         expiresAt: { gt: new Date() },
@@ -122,20 +136,16 @@ export const verifyOtpService = async ({
       orderBy: { createdAt: "desc" },
     });
     if (!otpRecord) throw new CustomError("Invalid or expired OTP", 400);
-
     await prisma.otp.update({
       where: { id: otpRecord.id },
       data: { used: true },
     });
-
     const token = generateToken({
       User: { id: user.id, role: { name: user.role.name } },
     });
-
     if (browser && city && country) {
       await createAccessLogService({ userId: user.id, browser, city, country });
     }
-
     return {
       success: true,
       data: {

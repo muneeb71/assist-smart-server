@@ -6,6 +6,19 @@ import {
   moderateDocumentController,
   getAllUsersController,
   getAllDocumentsController,
+  getUserController,
+  createUserController,
+  updateUserController,
+  deleteUserController,
+  changeUserRoleController,
+  getDocumentController,
+  updateDocumentController,
+  deleteDocumentController,
+  getAuditLogController,
+  listRolesController,
+  listRoleRequestsController,
+  approveRoleRequestController,
+  rejectRoleRequestController,
 } from './admin.controller.js';
 
 const router = express.Router();
