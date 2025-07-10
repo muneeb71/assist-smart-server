@@ -224,6 +224,20 @@ export const createAccessLogService = async ({
   }
 };
 
+export const deleteAccessLogService = async ({ accessLogId }) => {
+  try {
+    const deletedLog = await prisma.accessLog.delete({
+      where: { id: accessLogId },
+    });
+    return { success: true, data: deletedLog };
+  } catch (err) {
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
+  }
+};
+
 export const getAccessLogsService = async ({ userId }) => {
   try {
     const logs = await prisma.accessLog.findMany({
@@ -253,16 +267,9 @@ export const updateProfileService = async ({
       mobileNumber,
       gender,
       email,
+      profilePicture,
     };
 
-    if (profilePicture) {
-      const gcpUrl = await uploadFileToGCP(
-        profilePicture.buffer,
-        profilePicture.originalname,
-        "profile-pictures"
-      );
-      data.profilePicture = gcpUrl;
-    }
     const user = await prisma.user.update({
       where: { id: userId },
       data,
@@ -279,18 +286,13 @@ export const updateProfileService = async ({
 };
 
 export const deleteAccountService = async ({ userId }) => {
-  try {
-    // Delete related data first if needed (e.g., otps, accessLogs)
-    await prisma.otp.deleteMany({ where: { userId } });
-    await prisma.accessLog.deleteMany({ where: { userId } });
-    await prisma.user.delete({ where: { id: userId } });
-    return { success: true };
-  } catch (err) {
-    throw new CustomError(
-      err.message || "Internal Server Error",
-      err.statusCode || 500
-    );
-  }
+try {
+  const res = await prisma.user.delete({ where: { id: userId } });
+  console.log("User deleted:", res);
+} catch (err) {
+  console.error("❌ User delete failed:");
+  console.error(err); // Logs full Prisma error object
+}
 };
 
 export const requestRoleAccessService = async ({ userId, requestedRole }) => {

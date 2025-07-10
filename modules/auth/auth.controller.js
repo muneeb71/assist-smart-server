@@ -8,6 +8,7 @@ import {
   requestRoleAccessService,
   getDocumentHistoryService,
   getTokenProviderLoginService,
+  deleteAccessLogService,
 } from "./auth.service.js";
 
 export const requestOtpController = async (req, res) => {
@@ -69,8 +70,7 @@ export const updateProfileController = async (req, res) => {
   try {
     const userId = req.user?.userId;
     if (!userId) return errorResponse(res, "Unauthorized", null, 401);
-    const { fullName, mobileNumber, gender, email } = req.body;
-    const profilePicture = req.file;
+    const { fullName, mobileNumber, gender, email, profilePicture } = req.body;
     const result = await updateProfileService({
       userId,
       fullName,
@@ -164,6 +164,29 @@ export const providerLoginController = async (req, res) => {
     return errorResponse(
       res,
       "Failed to get token",
+      err,
+      err?.statusCode || 500
+    );
+  }
+};
+
+export const deleteAccessLogController = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return errorResponse(res, "Unauthorized", null, 401);
+    const accessLogId = req.params.id || req.body.accessLogId;
+    if (!accessLogId) {
+      return errorResponse(res, "Access Log ID required", null, 400);
+    }
+    const result = await deleteAccessLogService({
+      accessLogId: Number(accessLogId),
+    });
+    return successResponse(res, "Access log deleted", result);
+  } catch (err) {
+    console.log(err);
+    return errorResponse(
+      res,
+      "Failed to delete access log",
       err,
       err?.statusCode || 500
     );
