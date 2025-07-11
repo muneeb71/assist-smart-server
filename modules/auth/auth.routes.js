@@ -10,6 +10,7 @@ import {
   getDocumentHistoryController,
   providerLoginController,
   deleteAccessLogController,
+  handleAppleCallbackController,
 } from "./auth.controller.js";
 
 const router = express.Router();
@@ -22,6 +23,7 @@ router.put("/profile", authenticate, updateProfileController);
 router.delete("/account", authenticate, deleteAccountController);
 router.post("/request-role-access", authenticate, requestRoleAccessController);
 router.get("/document-history", authenticate, getDocumentHistoryController);
+router.post("/callback/apple", handleAppleCallbackController);
 router.delete("/access-log/:id", authenticate, deleteAccessLogController);
 
 export default router;

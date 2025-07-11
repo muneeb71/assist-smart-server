@@ -4,6 +4,7 @@ import { generateToken } from "../../lib/token.js";
 import { CustomError } from "../../lib/customError.js";
 import { sendOtpToEmail } from "../../lib/mail.js";
 import { uploadFileToGCP } from "../../lib/gcpUpload.js";
+import jwt from "jsonwebtoken";
 
 export const requestOtpService = async ({ email }) => {
   try {
@@ -408,4 +409,109 @@ export const getDocumentHistoryService = async ({ userId }) => {
       err.statusCode || 500
     );
   }
+};
+
+export const handleAppleCallbackService = async ({ code, browser, city, country }) => {
+  try {
+    if (!code) {
+      throw new CustomError("Missing authorization code", 400);
+    }
+
+    // Generate Apple client secret (you'll need to implement this)
+    const clientSecret = generateAppleClientSecret();
+
+    const params = new URLSearchParams();
+    params.append('client_id', process.env.APPLE_CLIENT_ID);
+    params.append('client_secret', clientSecret);
+    params.append('code', code);
+    params.append('grant_type', 'authorization_code');
+    params.append('redirect_uri', process.env.APPLE_REDIRECT_URI);
+
+    // Exchange code for token using fetch
+    const tokenResponse = await fetch('https://appleid.apple.com/auth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    });
+
+    if (!tokenResponse.ok) {
+      throw new CustomError("Failed to exchange code for token", 400);
+    }
+
+    const tokenData = await tokenResponse.json();
+    const idToken = tokenData.id_token;
+
+    if (!idToken) {
+      throw new CustomError("Invalid token response", 400);
+    }
+
+    // Decode the id_token (no verification needed for Apple's JWT)
+    const decoded = jwt.decode(idToken);
+    const { email, sub } = decoded;
+
+    if (!sub) {
+      throw new CustomError("Invalid token", 400);
+    }
+
+    // Find or create user
+    let user = await prisma.user.findUnique({ 
+      where: { appleId: sub },
+      include: { role: true }
+    });
+
+    if (!user) {
+      // Create new user with default role
+      const defaultRole = await prisma.role.findFirst({
+        where: { name: "employee" },
+      });
+
+      user = await prisma.user.create({
+        data: {
+          email: email || `apple_${sub}@example.com`,
+          appleId: sub,
+          fullName: email ? email.split("@")[0] : "Apple User",
+          roleId: defaultRole ? defaultRole.id : undefined,
+        },
+        include: { role: true },
+      });
+    }
+
+    // Generate JWT token
+    const token = generateToken({
+      User: { id: user.id, role: { name: user.role.name } },
+    });
+
+    // Create access log if browser info is provided
+    if (browser && city && country) {
+      await createAccessLogService({ userId: user.id, browser, city, country });
+    }
+
+    return {
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.fullName,
+          role: user.role.name,
+          profilePicture: user.profilePicture,
+          mobileNumber: user.mobileNumber,
+          gender: user.gender,
+        },
+        token,
+      },
+    };
+  } catch (err) {
+    throw new CustomError(
+      err.message || "Failed to authenticate with Apple",
+      err.statusCode || 500
+    );
+  }
+};
+
+// Helper function to generate Apple client secret
+const generateAppleClientSecret = () => {
+  return process.env.APPLE_CLIENT_SECRET || "your_apple_client_secret";
 };

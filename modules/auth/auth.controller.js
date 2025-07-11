@@ -9,6 +9,7 @@ import {
   getDocumentHistoryService,
   getTokenProviderLoginService,
   deleteAccessLogService,
+  handleAppleCallbackService,
 } from "./auth.service.js";
 
 export const requestOtpController = async (req, res) => {
@@ -187,6 +188,27 @@ export const deleteAccessLogController = async (req, res) => {
     return errorResponse(
       res,
       "Failed to delete access log",
+      err,
+      err?.statusCode || 500
+    );
+  }
+};
+
+export const handleAppleCallbackController = async (req, res) => {
+  try {
+    const { code, browser, city, country } = req.body;
+    const result = await handleAppleCallbackService({
+      code,
+      browser,
+      city,
+      country,
+    });
+    return successResponse(res, "Apple authentication successful", result);
+  } catch (err) {
+    console.log(err);
+    return errorResponse(
+      res,
+      "Apple authentication failed",
       err,
       err?.statusCode || 500
     );
