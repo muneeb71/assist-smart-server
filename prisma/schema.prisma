@@ -21,6 +21,7 @@ model User {
   mobileNumber           String?
   gender                 String?
   profilePicture         String?
+  appleId                String?                 @unique
   roleId                 Int
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt

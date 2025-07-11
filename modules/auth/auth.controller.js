@@ -8,6 +8,7 @@ import {
   requestRoleAccessService,
   getDocumentHistoryService,
   getTokenProviderLoginService,
+  handleAppleCallbackService,
 } from "./auth.service.js";
 
 export const requestOtpController = async (req, res) => {
@@ -164,6 +165,27 @@ export const providerLoginController = async (req, res) => {
     return errorResponse(
       res,
       "Failed to get token",
+      err,
+      err?.statusCode || 500
+    );
+  }
+};
+
+export const handleAppleCallbackController = async (req, res) => {
+  try {
+    const { code, browser, city, country } = req.body;
+    const result = await handleAppleCallbackService({
+      code,
+      browser,
+      city,
+      country,
+    });
+    return successResponse(res, "Apple authentication successful", result);
+  } catch (err) {
+    console.log(err);
+    return errorResponse(
+      res,
+      "Apple authentication failed",
       err,
       err?.statusCode || 500
     );

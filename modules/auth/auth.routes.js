@@ -9,6 +9,7 @@ import {
   requestRoleAccessController,
   getDocumentHistoryController,
   providerLoginController,
+  handleAppleCallbackController,
 } from "./auth.controller.js";
 import { upload } from "../../middlewares/upload.js";
 
@@ -27,5 +28,6 @@ router.put(
 router.delete("/account", authenticate, deleteAccountController);
 router.post("/request-role-access", authenticate, requestRoleAccessController);
 router.get("/document-history", authenticate, getDocumentHistoryController);
+router.post("/callback/apple", handleAppleCallbackController);
 
 export default router;
