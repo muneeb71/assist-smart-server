@@ -422,16 +422,6 @@ export const handleAppleCallbackService = async ({
       throw new CustomError("Missing authorization code", 400);
     }
 
-    // Generate Apple client secret (you'll need to implement this)
-    const clientSecret = generateAppleClientSecret();
-
-    const params = new URLSearchParams();
-    params.append("client_id", process.env.APPLE_CLIENT_ID);
-    params.append("client_secret", clientSecret);
-    params.append("code", code);
-    params.append("grant_type", "authorization_code");
-    params.append("redirect_uri", process.env.APPLE_REDIRECT_URI);
-
     const tokenResponse = await fetch(
       `https://appleid.apple.com/auth/token?client_id=${process.env.APPLE_CLIENT_ID}&client_secret=${process.env.APPLE_CLIENT_SECRET}&grant_type=authorization_code&redirect_uri=https://api.smarthse.ai/api/v1/auth/callback/apple`,
       {
@@ -515,9 +505,4 @@ export const handleAppleCallbackService = async ({
       err.statusCode || 500
     );
   }
-};
-
-// Helper function to generate Apple client secret
-const generateAppleClientSecret = () => {
-  return process.env.APPLE_CLIENT_SECRET || "your_apple_client_secret";
 };
