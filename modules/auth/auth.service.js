@@ -287,13 +287,13 @@ export const updateProfileService = async ({
 };
 
 export const deleteAccountService = async ({ userId }) => {
-try {
-  const res = await prisma.user.delete({ where: { id: userId } });
-  console.log("User deleted:", res);
-} catch (err) {
-  console.error("❌ User delete failed:");
-  console.error(err); // Logs full Prisma error object
-}
+  try {
+    const res = await prisma.user.delete({ where: { id: userId } });
+    console.log("User deleted:", res);
+  } catch (err) {
+    console.error("❌ User delete failed:");
+    console.error(err); // Logs full Prisma error object
+  }
 };
 
 export const requestRoleAccessService = async ({ userId, requestedRole }) => {
@@ -411,7 +411,12 @@ export const getDocumentHistoryService = async ({ userId }) => {
   }
 };
 
-export const handleAppleCallbackService = async ({ code, browser, city, country }) => {
+export const handleAppleCallbackService = async ({
+  code,
+  browser,
+  city,
+  country,
+}) => {
   try {
     if (!code) {
       throw new CustomError("Missing authorization code", 400);
@@ -421,20 +426,21 @@ export const handleAppleCallbackService = async ({ code, browser, city, country 
     const clientSecret = generateAppleClientSecret();
 
     const params = new URLSearchParams();
-    params.append('client_id', process.env.APPLE_CLIENT_ID);
-    params.append('client_secret', clientSecret);
-    params.append('code', code);
-    params.append('grant_type', 'authorization_code');
-    params.append('redirect_uri', process.env.APPLE_REDIRECT_URI);
+    params.append("client_id", process.env.APPLE_CLIENT_ID);
+    params.append("client_secret", clientSecret);
+    params.append("code", code);
+    params.append("grant_type", "authorization_code");
+    params.append("redirect_uri", process.env.APPLE_REDIRECT_URI);
 
-    // Exchange code for token using fetch
-    const tokenResponse = await fetch('https://appleid.apple.com/auth/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: params.toString(),
-    });
+    const tokenResponse = await fetch(
+      `https://appleid.apple.com/auth/token?client_id=${process.env.APPLE_CLIENT_ID}&client_secret=${process.env.APPLE_CLIENT_SECRET}&grant_type=authorization_code&redirect_uri=https://api.smarthse.ai/api/v1/auth/callback/apple`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
 
     if (!tokenResponse.ok) {
       throw new CustomError("Failed to exchange code for token", 400);
@@ -456,9 +462,9 @@ export const handleAppleCallbackService = async ({ code, browser, city, country 
     }
 
     // Find or create user
-    let user = await prisma.user.findUnique({ 
+    let user = await prisma.user.findUnique({
       where: { appleId: sub },
-      include: { role: true }
+      include: { role: true },
     });
 
     if (!user) {
