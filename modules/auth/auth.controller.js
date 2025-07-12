@@ -203,7 +203,23 @@ export const handleAppleCallbackController = async (req, res) => {
       city,
       country,
     });
-    return successResponse(res, "Apple authentication successful", result);
+
+    const { user, token } = result.data;
+
+    const params = new URLSearchParams({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: "employee", // force role param
+      profilePicture: user.profilePicture || "",
+      mobileNumber: user.mobileNumber || "",
+      gender: user.gender || "",
+      token,
+    });
+
+    return res.redirect(
+      `https://smart-assist-ai.vercel.app/login?${params.toString()}`
+    );
   } catch (err) {
     console.log(err);
     return errorResponse(

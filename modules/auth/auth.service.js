@@ -423,12 +423,9 @@ export const handleAppleCallbackService = async ({
     }
 
     const tokenResponse = await fetch(
-      `https://appleid.apple.com/auth/token?client_id=${process.env.APPLE_CLIENT_ID}&client_secret=${process.env.APPLE_CLIENT_SECRET}&grant_type=authorization_code&redirect_uri=https://api.smarthse.ai/api/v1/auth/callback/apple`,
+      `https://appleid.apple.com/auth/token?client_id=com.fleacttech.assistsmart.service&client_secret=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IkdMSEJDRjUzUzcifQ.eyJpYXQiOjE3NTIyNzUzMTQsImV4cCI6MTc2NzgyNzMxNCwiYXVkIjoiaHR0cHM6Ly9hcHBsZWlkLmFwcGxlLmNvbSIsImlzcyI6IjZYU0RaOUFNTFAiLCJzdWIiOiJjb20uZmxlYWN0dGVjaC5hc3Npc3RzbWFydC5zZXJ2aWNlIn0.DSsVUxjn99C8hmL0GrQI5gQ0H_9VSMuLz_aXzYfZ41F0-DGEJhm195_5_mQMjJMc2z93tJB4eDIGk2sEn0RXUg&code=${code}&grant_type=authorization_code&redirect_uri=https://api.smarthse.ai/api/v1/auth/callback/apple`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
       }
     );
 
