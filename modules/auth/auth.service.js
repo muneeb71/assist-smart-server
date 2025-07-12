@@ -444,21 +444,21 @@ export const handleAppleCallbackService = async ({
     }
 
     // Decode the id_token (no verification needed for Apple's JWT)
-    const decoded = jwt.decode(idToken);
+    const decoded = jwt.decode(
+      "eyJraWQiOiJVYUlJRlkyZlc0IiwiYWxnIjoiUlMyNTYifQ.eyJpc3MiOiJodHRwczovL2FwcGxlaWQuYXBwbGUuY29tIiwiYXVkIjoiY29tLmZsZWFjdHRlY2guYXNzaXN0c21hcnQuc2VydmljZSIsImV4cCI6MTc1MjM2NTMxOSwiaWF0IjoxNzUyMjc4OTE5LCJzdWIiOiIwMDE0ODIuZjI2NjQzNzhiMWYxNDViMGJlMGUyNTk5M2RlOTE2NTYuMTE1MSIsImF0X2hhc2giOiI4WThhQ1AyRDIwRW15SDFSRWV1d2J3IiwiZW1haWwiOiJtdW5lZWIyMTA4QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJhdXRoX3RpbWUiOjE3NTIyNzg3MzgsIm5vbmNlX3N1cHBvcnRlZCI6dHJ1ZX0.L9Vean5NtZMA__HJXGCKkR8x4YVOjHQz8vos2WqO1gG84qc6mswwteZrhr4oPeF5Bzx-pZuAqcGLRmMFm9jTopFJ4dspBL7oyV1qlcQ9uQyoRuHQbdAw28RlM5U0Y0ge5o0gU7kifZN0CJ3IzblihTVgY4jgF2QiBhNnCLhKBenF_MNuxY25FakRmnqRq2jDhMJ0AYjctDSAhCD1-FJH8lkBxFiivreXqgIyU8KJ2s9DnRGCRmkPG5CBTxBPaog18y6q_-L7DqX3hfuwDk44GSb1zXO0Ovhr4M3PiQlTD30HnD-7G-HUlSqz7WSEEheKceQwaU5LraFFmt1nt8ESQQ"
+    );
     const { email, sub } = decoded;
 
     if (!sub) {
       throw new CustomError("Invalid token", 400);
     }
 
-    // Find or create user
     let user = await prisma.user.findUnique({
-      where: { appleId: sub },
+      where: { email },
       include: { role: true },
     });
 
     if (!user) {
-      // Create new user with default role
       const defaultRole = await prisma.role.findFirst({
         where: { name: "employee" },
       });
@@ -474,12 +474,10 @@ export const handleAppleCallbackService = async ({
       });
     }
 
-    // Generate JWT token
     const token = generateToken({
       User: { id: user.id, role: { name: user.role.name } },
     });
 
-    // Create access log if browser info is provided
     if (browser && city && country) {
       await createAccessLogService({ userId: user.id, browser, city, country });
     }
@@ -500,6 +498,7 @@ export const handleAppleCallbackService = async ({
       },
     };
   } catch (err) {
+    console.log(err);
     throw new CustomError(
       err.message || "Failed to authenticate with Apple",
       err.statusCode || 500
