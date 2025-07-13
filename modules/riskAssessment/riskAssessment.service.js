@@ -101,6 +101,25 @@ export const streamRiskAssessmentService = async ({
 
   let fullText = "";
 
+  const createdAssessment = await prisma.riskAssessment.create({
+    data: {
+      userId: parsedUserId,
+      companyBrandingId: parsedCompanyBrandingId,
+      industry,
+      activityType,
+      location,
+      existingControlMeasures,
+      responsibleDepartments,
+      preparedBy,
+      preparedByOccupation,
+      reviewedBy,
+      reviewedByOccupation,
+      approvedBy,
+      approvedByOccupation,
+      generatedContent: "",
+    },
+  });
+
   async function* stream() {
     yield* (async function* () {
       for await (const chunk of streamUsingGemini(prompt)) {
@@ -108,27 +127,14 @@ export const streamRiskAssessmentService = async ({
         yield chunk;
       }
     })();
-
-    await prisma.riskAssessment.create({
-      data: {
-        userId: parsedUserId,
-        companyBrandingId: parsedCompanyBrandingId,
-        industry,
-        activityType,
-        location,
-        existingControlMeasures,
-        responsibleDepartments,
-        preparedBy,
-        preparedByOccupation,
-        reviewedBy,
-        reviewedByOccupation,
-        approvedBy,
-        approvedByOccupation,
-        gcpFileUrl: null,
-        // generatedContent: fullText,
-      },
-    });
   }
+
+  await prisma.riskAssessment.update({
+    where: { id: createdAssessment.id },
+    data: {
+      generatedContent: fullText,
+    }
+  });
 
   return stream();
 };
