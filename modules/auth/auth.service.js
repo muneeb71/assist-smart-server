@@ -371,7 +371,7 @@ export const getDocumentHistoryService = async ({ userId }) => {
       title: doc[titleField] || category,
       category,
       generatedOn: doc.createdAt,
-      linkedUsers: [doc.user?.fullName || doc.user?.email || "Unknown"],
+      linkedUsers: [doc.user || "Unknown"],
       numberOfNewChanges: 0, // Placeholder, implement change tracking if needed
     });
 
