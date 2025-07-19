@@ -74,13 +74,13 @@ model RoleAccessRequest {
 
 model CompanyBranding {
   id                     Int                     @id @default(autoincrement())
-  userId                 Int
+  userId                 Int?
   name                   String
   documentControlNumber  String
   logo                   String
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
-  user                   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                   User?                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   incidentInvestigations IncidentInvestigation[]
   incidentReports        IncidentReport[]
   jobSafetyAnalyses      JobSafetyAnalysis[]
@@ -332,21 +332,21 @@ model IncidentInvestigation {
 }
 
 model IncidentInvestigationParticipant {
-  id                      Int                   @id @default(autoincrement())
+  id                      Int    @id @default(autoincrement())
   incidentInvestigationId Int
   name                    String
   // incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id], onDelete: Cascade)
 }
 
 model IncidentInvestigationWitness {
-  id                      Int                   @id @default(autoincrement())
+  id                      Int    @id @default(autoincrement())
   incidentInvestigationId Int
   name                    String
   // incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id], onDelete: Cascade)
 }
 
 model IncidentInvestigationDepartment {
-  id                      Int                   @id @default(autoincrement())
+  id                      Int    @id @default(autoincrement())
   incidentInvestigationId Int
   name                    String
   // incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id], onDelete: Cascade)
