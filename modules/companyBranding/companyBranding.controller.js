@@ -23,7 +23,8 @@ export const createCompanyBrandingController = async (req, res) => {
 
 export const listCompanyBrandingsController = async (req, res) => {
   try {
-    const result = await listCompanyBrandingsService();
+    const userId = req.params.userId || req.query.userId;
+    const result = await listCompanyBrandingsService(userId);
     return successResponse(res, "Company brandings fetched", result);
   } catch (err) {
     return errorResponse(

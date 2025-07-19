@@ -12,6 +12,7 @@ const router = express.Router();
 
 router.post("/", authenticate, createCompanyBrandingController);
 router.get("/", authenticate, listCompanyBrandingsController);
+router.get("/user/:userId", authenticate, listCompanyBrandingsController);
 router.get("/:id", authenticate, getCompanyBrandingController);
 router.put("/:id", authenticate, updateCompanyBrandingController);
 router.delete("/:id", authenticate, deleteCompanyBrandingController);

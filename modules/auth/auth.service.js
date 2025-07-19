@@ -38,6 +38,7 @@ export const requestOtpService = async ({ email }) => {
     await sendOtpToEmail(email, otp);
     return { success: true };
   } catch (err) {
+        console.error("PRISMA ERROR", err);
     throw new CustomError(
       err.message || "Internal Server Error",
       err.statusCode || 500
@@ -82,11 +83,6 @@ export const getTokenProviderLoginService = async ({
     const token = generateToken({
       User: { id: user.id, role: { name: role.name } },
     });
-
-    console.log(
-      "LOG",
-      browser && city && country ? "Access log created" : "No access log"
-    );
 
     if (browser && city && country) {
       await createAccessLogService({ userId: user.id, browser, city, country });
@@ -276,7 +272,6 @@ export const updateProfileService = async ({
       data,
     });
 
-    console.log("USRE", user);
     return { success: true, data: user };
   } catch (err) {
     throw new CustomError(
@@ -289,7 +284,6 @@ export const updateProfileService = async ({
 export const deleteAccountService = async ({ userId }) => {
   try {
     const res = await prisma.user.delete({ where: { id: userId } });
-    console.log("User deleted:", res);
   } catch (err) {
     console.error("❌ User delete failed:");
     console.error(err); // Logs full Prisma error object
@@ -492,7 +486,6 @@ export const handleAppleCallbackService = async ({
       },
     };
   } catch (err) {
-    console.log(err);
     throw new CustomError(
       err.message || "Failed to authenticate with Apple",
       err.statusCode || 500

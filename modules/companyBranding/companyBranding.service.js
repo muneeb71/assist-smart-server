@@ -4,13 +4,18 @@ import { CustomError } from "../../lib/customError.js";
 export const createCompanyBrandingService = async (data) => {
   try {
     console.log("DATA", data);
+    if (!data.userId || isNaN(Number(data.userId))) {
+      throw new CustomError("Invalid userId", 400);
+    }
     const branding = await prisma.companyBranding.create({
       data: {
+        userId: Number(data.userId),
         name: data.name,
         logo: data.logo,
         documentControlNumber: data.documentControlNumber,
       },
     });
+    console.log("BRADING", branding);
     return { success: true, data: branding };
   } catch (err) {
     throw new CustomError(
@@ -20,9 +25,11 @@ export const createCompanyBrandingService = async (data) => {
   }
 };
 
-export const listCompanyBrandingsService = async () => {
+export const listCompanyBrandingsService = async (userId) => {
   try {
+    const where = userId ? { userId: Number(userId) } : {};
     const list = await prisma.companyBranding.findMany({
+      where,
       orderBy: { createdAt: "desc" },
     });
     return { success: true, data: list };
