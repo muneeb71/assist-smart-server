@@ -21,14 +21,18 @@ model User {
   mobileNumber           String?
   gender                 String?
   profilePicture         String?
-  appleId                String?                 @unique
   roleId                 Int
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
+  appleId                String?                 @unique
   accessLogs             AccessLog[]
+  auditLogs              AuditLog[]
+  CompanyBranding        CompanyBranding[]
+  Document               Document[]
   incidentInvestigations IncidentInvestigation[]
   incidentReports        IncidentReport[]
   jobSafetyAnalyses      JobSafetyAnalysis[]
+  legalRegisters         LegalRegister[]
   methodStatements       MethodStatement[]
   otps                   Otp[]
   responsePlans          ResponsePlan[]
@@ -36,11 +40,7 @@ model User {
   RoleAccessRequest      RoleAccessRequest[]
   sitePermissions        SitePermission[]
   toolboxTalks           ToolboxTalk[]
-  legalRegisters         LegalRegister[]
-  auditLogs              AuditLog[]
   role                   Role                    @relation(fields: [roleId], references: [id])
-  CompanyBranding        CompanyBranding[]
-  Document               Document[]
 }
 
 model Otp {
@@ -75,23 +75,23 @@ model RoleAccessRequest {
 
 model CompanyBranding {
   id                     Int                     @id @default(autoincrement())
-  userId                 Int?
   name                   String
   documentControlNumber  String
   logo                   String
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
+  userId                 Int?
   user                   User?                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Document               Document[]
   incidentInvestigations IncidentInvestigation[]
   incidentReports        IncidentReport[]
   jobSafetyAnalyses      JobSafetyAnalysis[]
+  legalRegisters         LegalRegister[]
   methodStatements       MethodStatement[]
   responsePlans          ResponsePlan[]
   riskAssessments        RiskAssessment[]
   sitePermissions        SitePermission[]
   toolboxTalks           ToolboxTalk[]
-  legalRegisters         LegalRegister[]
-  Document               Document[]
 }
 
 model RiskAssessment {
@@ -118,7 +118,7 @@ model RiskAssessment {
 }
 
 model Document {
-  id                Int      @id @default(autoincrement())
+  id                Int             @id @default(autoincrement())
   userId            Int
   companyBrandingId Int
   category          String
@@ -126,12 +126,10 @@ model Document {
   inputsJson        String
   generatedContent  String?
   gcpFileUrl        String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  // Relations
-  companyBranding CompanyBranding @relation(fields: [companyBrandingId], references: [id])
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  companyBranding   CompanyBranding @relation(fields: [companyBrandingId], references: [id])
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model JobSafetyAnalysis {
@@ -302,12 +300,11 @@ model SitePermissionParticipant {
 }
 
 model IncidentInvestigationEvidence {
-  id                      Int      @id @default(autoincrement())
+  id                      Int                   @id @default(autoincrement())
   incidentInvestigationId Int
   url                     String
-  createdAt               DateTime @default(now())
-
-  incidentInvestigation IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id], onDelete: Cascade)
+  createdAt               DateTime              @default(now())
+  incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id], onDelete: Cascade)
 }
 
 model IncidentInvestigation {
@@ -319,56 +316,53 @@ model IncidentInvestigation {
   date                            DateTime
   time                            String
   location                        String
-  leadInvestigator                String
-  leadInvestigatorJobTitle        String
+  createdAt                       DateTime                                             @default(now())
+  updatedAt                       DateTime                                             @updatedAt
+  generatedContent                String?
+  approvedBy                      String
+  approvedByDate                  String
   assistedBy                      String
   assistedByJobTitle              String
-  investigationDate               String
-  investigationCloseOutDate       String
   building                        String
   eventDate                       String
-  locationOfEvent                 String
   eventTime                       String
+  investigationCloseOutDate       String
+  investigationDate               String
+  leadInvestigator                String
+  leadInvestigatorJobTitle        String
+  locationOfEvent                 String
   personInvolved                  String
-  personInvolvedJobTitle          String
   personInvolvedAddress           String
-  personInvolvedJoiningDate       String
   personInvolvedDaysAbsent        String
+  personInvolvedJobTitle          String
+  personInvolvedJoiningDate       String
   personInvolvedSupervisor        String
   producedBy                      String
   producedByDate                  String
-  approvedBy                      String
-  approvedByDate                  String
-  generatedContent                String?
-  createdAt                       DateTime                                             @default(now())
-  updatedAt                       DateTime                                             @updatedAt
   companyBranding                 CompanyBranding                                      @relation(fields: [companyBrandingId], references: [id])
   user                            User                                                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  evidenceFiles                   IncidentInvestigationEvidence[]
   immediateCausesUnsafeActs       IncidentInvestigationImmediateCauseUnsafeAct[]
   immediateCausesUnsafeConditions IncidentInvestigationImmediateCauseUnsafeCondition[]
   rootCausesPersonalFactors       IncidentInvestigationRootCausePersonalFactor[]
-  evidenceFiles                   IncidentInvestigationEvidence[]
 }
 
 model IncidentInvestigationParticipant {
   id                      Int    @id @default(autoincrement())
   incidentInvestigationId Int
   name                    String
-  // incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id], onDelete: Cascade)
 }
 
 model IncidentInvestigationWitness {
   id                      Int    @id @default(autoincrement())
   incidentInvestigationId Int
   name                    String
-  // incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id], onDelete: Cascade)
 }
 
 model IncidentInvestigationDepartment {
   id                      Int    @id @default(autoincrement())
   incidentInvestigationId Int
   name                    String
-  // incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id], onDelete: Cascade)
 }
 
 model IncidentInvestigationImmediateCauseUnsafeAct {
@@ -398,20 +392,18 @@ model LegalRegister {
   category          String
   year              Int
   companyBrandingId Int
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  userId            Int?
   companyBranding   CompanyBranding @relation(fields: [companyBrandingId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  userId Int?
-  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model AuditLog {
   id           Int      @id @default(autoincrement())
   userId       Int
-  action       String // e.g., CREATE, UPDATE, DELETE, REVIEW, APPROVE, REJECT
-  documentType String // e.g., RiskAssessment, IncidentReport, etc.
+  action       String
+  documentType String
   documentId   Int
   details      Json?
   createdAt    DateTime @default(now())

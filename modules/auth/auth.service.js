@@ -322,6 +322,7 @@ export const getDocumentHistoryService = async ({ userId }) => {
     });
 
     const formatDoc = (doc) => ({
+      id: doc.id,
       title: doc.subCategory || doc.category || doc.id,
       category: doc.category,
       subCategory: doc.subCategory,
