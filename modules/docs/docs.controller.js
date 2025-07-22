@@ -56,7 +56,7 @@ export const streamDocument = async (req, res) => {
       inputsJson,
     });
     res.setHeader("Content-Type", "text/plain");
-    for await (const chunk of stream()) {
+    for await (const chunk of stream) {
       res.write(chunk);
     }
     res.end();
