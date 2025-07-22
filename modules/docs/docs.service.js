@@ -105,15 +105,12 @@ export const streamDocumentService = async ({
         yield chunk;
       }
     })();
+
+    await prisma.document.update({
+      where: { id: createdDocument.id },
+      data: { generatedContent: fullText },
+    });
   }
-
-  await prisma.document.update({
-    where: { id: createdDocument.id },
-    data: {
-      generatedContent: fullText,
-    },
-  });
-
   return stream();
 };
 
