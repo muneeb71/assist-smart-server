@@ -38,7 +38,7 @@ export const requestOtpService = async ({ email }) => {
     await sendOtpToEmail(email, otp);
     return { success: true };
   } catch (err) {
-        console.error("PRISMA ERROR", err);
+    console.error("PRISMA ERROR", err);
     throw new CustomError(
       err.message || "Internal Server Error",
       err.statusCode || 500
@@ -315,87 +315,23 @@ export const requestRoleAccessService = async ({ userId, requestedRole }) => {
 
 export const getDocumentHistoryService = async ({ userId }) => {
   try {
-    // Collect all document types
-    const [
-      riskAssessments,
-      jobSafetyAnalyses,
-      methodStatements,
-      responsePlans,
-      toolboxTalks,
-      incidentReports,
-      sitePermissions,
-      incidentInvestigations,
-    ] = await Promise.all([
-      prisma.riskAssessment.findMany({
-        where: { userId },
-        include: { user: true },
-      }),
-      prisma.jobSafetyAnalysis.findMany({
-        where: { userId },
-        include: { user: true },
-      }),
-      prisma.methodStatement.findMany({
-        where: { userId },
-        include: { user: true },
-      }),
-      prisma.responsePlan.findMany({
-        where: { userId },
-        include: { user: true },
-      }),
-      prisma.toolboxTalk.findMany({
-        where: { userId },
-        include: { user: true },
-      }),
-      prisma.incidentReport.findMany({
-        where: { userId },
-        include: { user: true },
-      }),
-      prisma.sitePermission.findMany({
-        where: { userId },
-        include: { user: true },
-      }),
-      prisma.incidentInvestigation.findMany({
-        where: { userId },
-        include: { user: true },
-      }),
-    ]);
-
-    // Helper to format each doc
-    const formatDoc = (doc, category, titleField = "id") => ({
-      title: doc[titleField] || category,
-      category,
-      generatedOn: doc.createdAt,
-      linkedUsers: [doc.user || "Unknown"],
-      numberOfNewChanges: 0, // Placeholder, implement change tracking if needed
+    const documents = await prisma.document.findMany({
+      where: { userId },
+      include: { user: true },
+      orderBy: { createdAt: "desc" },
     });
 
-    const history = [
-      ...riskAssessments.map((doc) =>
-        formatDoc(doc, "Risk Assessment", "industry")
-      ),
-      ...jobSafetyAnalyses.map((doc) =>
-        formatDoc(doc, "Job Safety Analysis", "activityType")
-      ),
-      ...methodStatements.map((doc) =>
-        formatDoc(doc, "Method Statement", "activityName")
-      ),
-      ...responsePlans.map((doc) =>
-        formatDoc(doc, "Response Plan", "emergencyType")
-      ),
-      ...toolboxTalks.map((doc) => formatDoc(doc, "Toolbox Talk", "topic")),
-      ...incidentReports.map((doc) =>
-        formatDoc(doc, "Incident Report", "incidentType")
-      ),
-      ...sitePermissions.map((doc) =>
-        formatDoc(doc, "Site Permission", "activityType")
-      ),
-      ...incidentInvestigations.map((doc) =>
-        formatDoc(doc, "Incident Investigation", "incidentCategory")
-      ),
-    ];
+    const formatDoc = (doc) => ({
+      title: doc.subCategory || doc.category || doc.id,
+      category: doc.category,
+      subCategory: doc.subCategory,
+      generatedOn: doc.createdAt,
+      linkedUsers: [doc.user || "Unknown"],
+      numberOfNewChanges: 0, 
+    });
 
-    // Sort by generatedOn desc
-    history.sort((a, b) => b.generatedOn - a.generatedOn);
+    const history = documents.map(formatDoc);
+
     return { success: true, data: history };
   } catch (err) {
     throw new CustomError(
