@@ -40,6 +40,7 @@ model User {
   auditLogs              AuditLog[]
   role                   Role                    @relation(fields: [roleId], references: [id])
   CompanyBranding        CompanyBranding[]
+  Document               Document[]
 }
 
 model Otp {
@@ -90,6 +91,7 @@ model CompanyBranding {
   sitePermissions        SitePermission[]
   toolboxTalks           ToolboxTalk[]
   legalRegisters         LegalRegister[]
+  Document               Document[]
 }
 
 model RiskAssessment {
@@ -113,6 +115,23 @@ model RiskAssessment {
   generatedContent        String?
   companyBranding         CompanyBranding @relation(fields: [companyBrandingId], references: [id])
   user                    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Document {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  companyBrandingId Int
+  category          String
+  subCategory       String
+  inputsJson        String
+  generatedContent  String?
+  gcpFileUrl        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  companyBranding CompanyBranding @relation(fields: [companyBrandingId], references: [id])
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model JobSafetyAnalysis {

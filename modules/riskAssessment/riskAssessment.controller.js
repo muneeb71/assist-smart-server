@@ -85,7 +85,11 @@ export const updateRiskAssessmentController = async (req, res) => {
     const userId = req.user?.userId;
     const { id } = req.params;
     const updateData = req.body;
-    const result = await updateRiskAssessmentService({ id: Number(id), userId, updateData });
+    const result = await updateRiskAssessmentService({
+      id: Number(id),
+      userId,
+      updateData,
+    });
     return successResponse(res, "Risk assessment updated", result);
   } catch (err) {
     console.log(err);
