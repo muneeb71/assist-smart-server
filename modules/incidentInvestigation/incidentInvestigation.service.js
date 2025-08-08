@@ -1,6 +1,6 @@
 import prisma from "../../config/prisma.js";
 import { CustomError } from "../../lib/customError.js";
-import { getIncidentInvestigationPrompt } from "../../lib/prompts.js";
+import { getIncidentInvestigationReportPrompt } from "../../lib/prompts.js";
 import {
   generateUsingGemini,
   streamUsingGemini,
@@ -185,7 +185,7 @@ export const streamIncidentInvestigationService = async ({
   rootCausesPersonalFactors = [],
   evidenceUrls = [],
 }) => {
-  const prompt = getIncidentInvestigationPrompt({
+  const prompt = getIncidentInvestigationReportPrompt({
     incidentCategory,
     description,
     immediateCausesUnsafeActs,
