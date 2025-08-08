@@ -55,7 +55,22 @@ export const streamDocumentService = async ({
   subCategory,
   inputsJson,
 }) => {
-  const prompt = getDocumentPrompt(inputsJson, subCategory);
+  let parsedInputs = inputsJson;
+  if (typeof inputsJson === "string") {
+    try {
+      parsedInputs = JSON.parse(inputsJson);
+    } catch (e) {
+      throw new Error("Invalid inputsJson: must be a valid JSON string");
+    }
+  }
+
+  if (subCategory === "Job Safety Analysis" && parsedInputs.knownHazards) {
+    parsedInputs.knownHazards = Array.isArray(parsedInputs.knownHazards)
+      ? parsedInputs.knownHazards.join(", ")
+      : parsedInputs.knownHazards;
+  }
+
+  const prompt = getDocumentPrompt(JSON.stringify(parsedInputs), subCategory);
 
   const parsedUserId = Number(userId);
   const parsedCompanyBrandingId = Number(companyBrandingId);
@@ -93,7 +108,7 @@ export const streamDocumentService = async ({
       companyBrandingId: companyBrandingIdToUse,
       category,
       subCategory,
-      inputsJson,
+      inputsJson: JSON.stringify(parsedInputs),
       generatedContent: "",
     },
   });
