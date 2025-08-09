@@ -35,7 +35,8 @@ export const requestOtpService = async ({ email }) => {
         },
       });
     }
-    await sendOtpToEmail(email, otp);
+    console.log("OTP", otp);
+    // await sendOtpToEmail(email, otp);
     return { success: true };
   } catch (err) {
     console.error("PRISMA ERROR", err);
