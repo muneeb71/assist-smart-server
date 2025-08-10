@@ -126,7 +126,12 @@ export const streamDocumentService = async ({
       data: { generatedContent: fullText },
     });
   }
-  return stream();
+
+  // Return both the stream and the document ID
+  return {
+    stream: stream(),
+    documentId: createdDocument.id
+  };
 };
 
 export const updateDocumentService = async ({ id, userId, updateData }) => {
