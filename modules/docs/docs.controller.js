@@ -48,6 +48,11 @@ export const streamDocument = async (req, res) => {
   try {
     const { userId } = req.user;
     const { companyBrandingId, category, subCategory, inputsJson } = req.body;
+
+    console.log("companyBrandingId", companyBrandingId);
+    console.log("category", category);
+    console.log("subCategory", subCategory);
+    console.log("inputsJson", inputsJson);
     
     // Get the service response first
     const { stream, documentId } = await docsService.streamDocumentService({
