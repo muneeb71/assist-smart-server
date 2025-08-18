@@ -125,6 +125,7 @@ model Document {
   subCategory       String
   inputsJson        String
   generatedContent  String?
+  status            String?          @default("open")
   gcpFileUrl        String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt

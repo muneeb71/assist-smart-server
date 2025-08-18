@@ -9,5 +9,6 @@ router.get("/:id", authenticate, docsController.getDocument);
 router.delete("/:id", authenticate, docsController.deleteDocument);
 router.post("/stream", authenticate, docsController.streamDocument);
 router.put("/:id", authenticate, docsController.updateDocument);
+router.patch("/:id/status", authenticate, docsController.updateDocumentStatus);
 
 export default router;

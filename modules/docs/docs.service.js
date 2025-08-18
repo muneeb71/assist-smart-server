@@ -110,6 +110,7 @@ export const streamDocumentService = async ({
       subCategory,
       inputsJson: JSON.stringify(parsedInputs),
       generatedContent: "",
+      status: "open",
     },
   });
 
@@ -145,6 +146,7 @@ export const updateDocumentService = async ({ id, userId, updateData }) => {
       "generatedContent",
       "gcpFileUrl",
       "companyBrandingId",
+      "status",
     ];
     const filteredUpdateData = Object.fromEntries(
       Object.entries(updateData).filter(([key]) => allowedFields.includes(key))
@@ -155,6 +157,31 @@ export const updateDocumentService = async ({ id, userId, updateData }) => {
     });
     return { success: true, data: updated };
   } catch (err) {
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
+  }
+};
+
+export const updateDocumentStatusService = async ({ id, userId, status }) => {
+  try {
+    const existing = await prisma.document.findFirst({ where: { id, userId } });
+    if (!existing) throw new CustomError("Not found", 404);
+    
+    const validStatuses = ["closed"];
+    if (!validStatuses.includes(status)) {
+      throw new CustomError("Invalid status. Must be 'open' or 'closed'", 400);
+    }
+    
+    const updated = await prisma.document.update({
+      where: { id },
+      data: { status },
+      include: { companyBranding: true },
+    });
+    return { success: true, data: updated };
+  } catch (err) {
+    console.log(err);
     throw new CustomError(
       err.message || "Internal Server Error",
       err.statusCode || 500

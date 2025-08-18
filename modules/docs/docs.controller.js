@@ -104,3 +104,29 @@ export const updateDocument = async (req, res) => {
       .json({ success: false, message: err.message });
   }
 };
+
+export const updateDocumentStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.user;
+    const { status } = req.body;
+    
+    if (!status) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Status is required" 
+      });
+    }
+    
+    const result = await docsService.updateDocumentStatusService({
+      id: Number(id),
+      userId,
+      status,
+    });
+    res.json(result);
+  } catch (err) {
+    res
+      .status(err.statusCode || 500)
+      .json({ success: false, message: err.message });
+  }
+};

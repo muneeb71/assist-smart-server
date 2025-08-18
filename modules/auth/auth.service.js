@@ -328,7 +328,8 @@ export const getDocumentHistoryService = async ({ userId }) => {
       subCategory: doc.subCategory,
       generatedOn: doc.createdAt,
       linkedUsers: [doc.user || "Unknown"],
-      numberOfNewChanges: 0, 
+      numberOfNewChanges: 0,
+      status: doc?.status || "open",
     });
 
     const history = documents.map(formatDoc);
