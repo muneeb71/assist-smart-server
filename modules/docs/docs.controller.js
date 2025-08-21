@@ -63,8 +63,12 @@ export const streamDocument = async (req, res) => {
       inputsJson,
     });
     
+    console.log("documentId received:", documentId);
+    console.log("documentId type:", typeof documentId);
+    
     // Set ALL headers BEFORE starting the stream
-    res.setHeader("X-Document-ID", documentId.toString());
+    res.setHeader("X-Document-ID", documentId);
+    res.setHeader("Document-ID", documentId); // Alternative header name
     res.setHeader("Content-Type", "text/plain");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");

@@ -129,6 +129,7 @@ export const streamDocumentService = async ({
   }
 
   // Return both the stream and the document ID
+  console.log("Service returning documentId:", createdDocument.id);
   return {
     stream: stream(),
     documentId: createdDocument.id
