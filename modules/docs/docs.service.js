@@ -69,71 +69,76 @@ export const streamDocumentService = async ({
       ? parsedInputs.knownHazards.join(", ")
       : parsedInputs.knownHazards;
   }
+  try {
+    const prompt = getDocumentPrompt(JSON.stringify(parsedInputs), subCategory);
 
-  const prompt = getDocumentPrompt(JSON.stringify(parsedInputs), subCategory);
+    const parsedUserId = Number(userId);
+    const parsedCompanyBrandingId = Number(companyBrandingId);
 
-  const parsedUserId = Number(userId);
-  const parsedCompanyBrandingId = Number(companyBrandingId);
+    if (isNaN(parsedUserId)) {
+      throw new Error("Invalid userId: must be a number");
+    }
+    if (isNaN(parsedCompanyBrandingId)) {
+      throw new Error("Invalid companyBrandingId: must be a number");
+    }
 
-  if (isNaN(parsedUserId)) {
-    throw new Error("Invalid userId: must be a number");
-  }
-  if (isNaN(parsedCompanyBrandingId)) {
-    throw new Error("Invalid companyBrandingId: must be a number");
-  }
+    let companyBrandingIdToUse = parsedCompanyBrandingId;
 
-  let companyBrandingIdToUse = parsedCompanyBrandingId;
+    const companyBranding = await prisma.companyBranding.findUnique({
+      where: { id: parsedCompanyBrandingId },
+      select: { id: true },
+    });
 
-  const companyBranding = await prisma.companyBranding.findUnique({
-    where: { id: parsedCompanyBrandingId },
-    select: { id: true },
-  });
+    if (!companyBranding) {
+      const newCompanyBranding = await prisma.companyBranding.create({
+        data: {
+          name: "Default Company Name",
+          documentControlNumber: "N/A",
+          logo: "",
+        },
+      });
+      companyBrandingIdToUse = newCompanyBranding.id;
+    }
 
-  if (!companyBranding) {
-    const newCompanyBranding = await prisma.companyBranding.create({
+    let fullText = "";
+
+    const createdDocument = await prisma.document.create({
       data: {
-        name: "Default Company Name",
-        documentControlNumber: "N/A",
-        logo: "",
+        userId: parsedUserId,
+        companyBrandingId: companyBrandingIdToUse,
+        category,
+        subCategory,
+        inputsJson: JSON.stringify(parsedInputs),
+        generatedContent: "",
+        status: "open",
       },
     });
-    companyBrandingIdToUse = newCompanyBranding.id;
+    console.log("createdDocument", createdDocument);
+    async function* stream() {
+      yield* (async function* () {
+        for await (const chunk of streamUsingGemini(prompt)) {
+          fullText += chunk;
+          yield chunk;
+        }
+      })();
+
+      await prisma.document.update({
+        where: { id: createdDocument.id },
+        data: { generatedContent: fullText },
+      });
+    }
+
+    return {
+      stream: stream(),
+      documentId: createdDocument.id,
+    };
+  } catch (err) {
+    console.log(err);
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
   }
-
-  let fullText = "";
-
-  const createdDocument = await prisma.document.create({
-    data: {
-      userId: parsedUserId,
-      companyBrandingId: companyBrandingIdToUse,
-      category,
-      subCategory,
-      inputsJson: JSON.stringify(parsedInputs),
-      generatedContent: "",
-      status: "open",
-    },
-  });
-
-  async function* stream() {
-    yield* (async function* () {
-      for await (const chunk of streamUsingGemini(prompt)) {
-        fullText += chunk;
-        yield chunk;
-      }
-    })();
-
-    await prisma.document.update({
-      where: { id: createdDocument.id },
-      data: { generatedContent: fullText },
-    });
-  }
-
-  // Return both the stream and the document ID
-  console.log("Service returning documentId:", createdDocument.id);
-  return {
-    stream: stream(),
-    documentId: createdDocument.id
-  };
 };
 
 export const updateDocumentService = async ({ id, userId, updateData }) => {
@@ -169,12 +174,12 @@ export const updateDocumentStatusService = async ({ id, userId, status }) => {
   try {
     const existing = await prisma.document.findFirst({ where: { id, userId } });
     if (!existing) throw new CustomError("Not found", 404);
-    
+
     const validStatuses = ["closed"];
     if (!validStatuses.includes(status)) {
       throw new CustomError("Invalid status. Must be 'open' or 'closed'", 400);
     }
-    
+
     const updated = await prisma.document.update({
       where: { id },
       data: { status },

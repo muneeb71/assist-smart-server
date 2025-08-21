@@ -53,8 +53,7 @@ export const streamDocument = async (req, res) => {
     console.log("category", category);
     console.log("subCategory", subCategory);
     console.log("inputsJson", inputsJson);
-    
-    // Get the service response first
+
     const { stream, documentId } = await docsService.streamDocumentService({
       userId,
       companyBrandingId,
@@ -63,29 +62,22 @@ export const streamDocument = async (req, res) => {
       inputsJson,
     });
     
-    console.log("documentId received:", documentId);
-    console.log("documentId type:", typeof documentId);
-    
-    // Set ALL headers BEFORE starting the stream
     res.setHeader("X-Document-ID", documentId);
-    res.setHeader("Document-ID", documentId); // Alternative header name
+    res.setHeader("Document-ID", documentId);
     res.setHeader("Content-Type", "text/plain");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
     
-    // Now start streaming
     for await (const chunk of stream) {
       res.write(chunk);
     }
     res.end();
   } catch (err) {
-    // Only send error response if headers haven't been sent yet
     if (!res.headersSent) {
       res
         .status(err.statusCode || 500)
         .json({ success: false, message: err.message });
     } else {
-      // If headers already sent, just end the response
       res.end();
     }
   }
