@@ -40,6 +40,7 @@ model User {
   RoleAccessRequest      RoleAccessRequest[]
   sitePermissions        SitePermission[]
   toolboxTalks           ToolboxTalk[]
+  trainingTrackers       TrainingTracker[]
   role                   Role                    @relation(fields: [roleId], references: [id])
 }
 
@@ -92,6 +93,7 @@ model CompanyBranding {
   riskAssessments        RiskAssessment[]
   sitePermissions        SitePermission[]
   toolboxTalks           ToolboxTalk[]
+  trainingTrackers       TrainingTracker[]
 }
 
 model RiskAssessment {
@@ -125,10 +127,10 @@ model Document {
   subCategory       String
   inputsJson        String
   generatedContent  String?
-  status            String?          @default("open")
   gcpFileUrl        String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
+  status            String?         @default("open")
   companyBranding   CompanyBranding @relation(fields: [companyBrandingId], references: [id])
   user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -409,4 +411,21 @@ model AuditLog {
   details      Json?
   createdAt    DateTime @default(now())
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TrainingTracker {
+  id                Int             @id @default(autoincrement())
+  userId            Int
+  companyBrandingId Int
+  employeeName      String
+  employeeIdNumber  String
+  trainingType      String
+  trainingTopic     String
+  dateAndTime       DateTime
+  certificateNumber String?
+  trainingHours     String
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  companyBranding   CompanyBranding @relation(fields: [companyBrandingId], references: [id])
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

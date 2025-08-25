@@ -126,3 +126,125 @@ export const updateDocumentStatus = async (req, res) => {
       .json({ success: false, message: err.message });
   }
 };
+
+export const createTrainingTracker = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const {
+      companyBrandingId,
+      employeeName,
+      employeeIdNumber,
+      trainingType,
+      trainingTopic,
+      dateAndTime,
+      certificateNumber,
+      trainingHours,
+    } = req.body;
+
+    // Validate required fields
+    if (!employeeName || !employeeIdNumber || !trainingType || !trainingTopic || !dateAndTime || !trainingHours) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
+
+    const result = await docsService.createTrainingTrackerService({
+      userId,
+      companyBrandingId,
+      employeeName,
+      employeeIdNumber,
+      trainingType,
+      trainingTopic,
+      dateAndTime,
+      certificateNumber,
+      trainingHours,
+    });
+
+    res.status(201).json(result);
+  } catch (err) {
+    res
+      .status(err.statusCode || 500)
+      .json({ success: false, message: err.message });
+  }
+};
+
+export const listTrainingTrackers = async (req, res) => {
+  try {
+    const result = await docsService.listTrainingTrackersService();
+    res.json(result);
+  } catch (err) {
+    res
+      .status(err.statusCode || 500)
+      .json({ success: false, message: err.message });
+  }
+};
+
+export const getTrainingTracker = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.user;
+    const result = await docsService.getTrainingTrackerService({
+      id: Number(id),
+      userId,
+    });
+    res.json(result);
+  } catch (err) {
+    res
+      .status(err.statusCode || 500)
+      .json({ success: false, message: err.message });
+  }
+};
+
+export const updateTrainingTracker = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.user;
+    const updateData = req.body;
+    const result = await docsService.updateTrainingTrackerService({
+      id: Number(id),
+      userId,
+      updateData,
+    });
+    res.json(result);
+  } catch (err) {
+    res
+      .status(err.statusCode || 500)
+      .json({ success: false, message: err.message });
+  }
+};
+
+export const deleteTrainingTracker = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.user;
+    const result = await docsService.deleteTrainingTrackerService({
+      id: Number(id),
+      userId,
+    });
+    res.json(result);
+  } catch (err) {
+    res
+      .status(err.statusCode || 500)
+      .json({ success: false, message: err.message });
+  }
+};
+
+export const trainingTracker = async (req, res) => {
+  try {
+    const { userId } = req.user;
+    const { trainingId } = req.body;
+    
+    // This method is kept for backward compatibility
+    // You can implement specific training tracker logic here if needed
+    res.json({ 
+      success: true, 
+      message: "Training tracker endpoint reached",
+      trainingId 
+    });
+  } catch (err) {
+    res
+      .status(err.statusCode || 500)
+      .json({ success: false, message: err.message });
+  }
+};

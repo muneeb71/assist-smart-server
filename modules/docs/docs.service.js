@@ -194,3 +194,199 @@ export const updateDocumentStatusService = async ({ id, userId, status }) => {
     );
   }
 };
+
+export const createTrainingTrackerService = async ({
+  userId,
+  companyBrandingId,
+  employeeName,
+  employeeIdNumber,
+  trainingType,
+  trainingTopic,
+  dateAndTime,
+  certificateNumber,
+  trainingHours,
+}) => {
+  try {
+    const parsedUserId = Number(userId);
+    const parsedCompanyBrandingId = Number(companyBrandingId);
+
+    if (isNaN(parsedUserId)) {
+      throw new Error("Invalid userId: must be a number");
+    }
+    if (isNaN(parsedCompanyBrandingId)) {
+      throw new Error("Invalid companyBrandingId: must be a number");
+    }
+
+    // Check if company branding exists
+    const companyBranding = await prisma.companyBranding.findUnique({
+      where: { id: parsedCompanyBrandingId },
+      select: { id: true },
+    });
+
+    if (!companyBranding) {
+      throw new CustomError("Company branding not found", 404);
+    }
+
+    const trainingRecord = await prisma.trainingTracker.create({
+      data: {
+        userId: parsedUserId,
+        companyBrandingId: parsedCompanyBrandingId,
+        employeeName,
+        employeeIdNumber,
+        trainingType,
+        trainingTopic,
+        dateAndTime: new Date(dateAndTime),
+        certificateNumber,
+        trainingHours,
+      },
+      include: {
+        companyBranding: true,
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return { success: true, data: trainingRecord };
+  } catch (err) {
+    console.log(err);
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
+  }
+};
+
+export const listTrainingTrackersService = async () => {
+  try {
+
+    const trainingRecords = await prisma.trainingTracker.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        companyBranding: true,
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return { success: true, data: trainingRecords };
+  } catch (err) {
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
+  }
+};
+
+export const getTrainingTrackerService = async ({ id, userId }) => {
+  try {
+    const trainingRecord = await prisma.trainingTracker.findFirst({
+      where: { id, userId },
+      include: {
+        companyBranding: true,
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!trainingRecord) {
+      throw new CustomError("Training record not found", 404);
+    }
+
+    return { success: true, data: trainingRecord };
+  } catch (err) {
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
+  }
+};
+
+export const updateTrainingTrackerService = async ({ id, userId, updateData }) => {
+  try {
+    const existing = await prisma.trainingTracker.findFirst({
+      where: { id, userId },
+    });
+
+    if (!existing) {
+      throw new CustomError("Training record not found", 404);
+    }
+
+    const allowedFields = [
+      "employeeName",
+      "employeeIdNumber",
+      "trainingType",
+      "trainingTopic",
+      "dateAndTime",
+      "certificateNumber",
+      "trainingHours",
+      "companyBrandingId",
+    ];
+
+    const filteredUpdateData = Object.fromEntries(
+      Object.entries(updateData).filter(([key]) => allowedFields.includes(key))
+    );
+
+    // Convert dateAndTime to Date object if it exists
+    if (filteredUpdateData.dateAndTime) {
+      filteredUpdateData.dateAndTime = new Date(filteredUpdateData.dateAndTime);
+    }
+
+    const updated = await prisma.trainingTracker.update({
+      where: { id },
+      data: filteredUpdateData,
+      include: {
+        companyBranding: true,
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return { success: true, data: updated };
+  } catch (err) {
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
+  }
+};
+
+export const deleteTrainingTrackerService = async ({ id, userId }) => {
+  try {
+    const existing = await prisma.trainingTracker.findFirst({
+      where: { id, userId },
+    });
+
+    if (!existing) {
+      throw new CustomError("Training record not found", 404);
+    }
+
+    await prisma.trainingTracker.delete({ where: { id } });
+
+    return { success: true, message: "Training record deleted successfully" };
+  } catch (err) {
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
+  }
+};
