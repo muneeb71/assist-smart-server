@@ -205,6 +205,10 @@ export const createTrainingTrackerService = async ({
   dateAndTime,
   certificateNumber,
   trainingHours,
+  certificationName,
+  certificationExpiryDate,
+  certificationStatus,
+  location,
 }) => {
   try {
     const parsedUserId = Number(userId);
@@ -238,6 +242,10 @@ export const createTrainingTrackerService = async ({
         dateAndTime: new Date(dateAndTime),
         certificateNumber,
         trainingHours,
+        certificationName,
+        certificationExpiryDate: certificationExpiryDate ? new Date(certificationExpiryDate) : null,
+        certificationStatus,
+        location,
       },
       include: {
         companyBranding: true,

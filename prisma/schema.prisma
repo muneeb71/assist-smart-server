@@ -414,18 +414,22 @@ model AuditLog {
 }
 
 model TrainingTracker {
-  id                Int             @id @default(autoincrement())
-  userId            Int
-  companyBrandingId Int
-  employeeName      String
-  employeeIdNumber  String
-  trainingType      String
-  trainingTopic     String
-  dateAndTime       DateTime
-  certificateNumber String?
-  trainingHours     String
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  companyBranding   CompanyBranding @relation(fields: [companyBrandingId], references: [id])
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    Int             @id @default(autoincrement())
+  userId                Int
+  companyBrandingId     Int
+  employeeName          String
+  employeeIdNumber      String
+  trainingType          String
+  trainingTopic         String
+  dateAndTime           DateTime
+  certificateNumber     String?
+  trainingHours         String
+  certificationName     String?
+  certificationExpiryDate DateTime?
+  certificationStatus   String?
+  location              String?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  companyBranding       CompanyBranding @relation(fields: [companyBrandingId], references: [id])
+  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

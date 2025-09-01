@@ -139,9 +139,12 @@ export const createTrainingTracker = async (req, res) => {
       dateAndTime,
       certificateNumber,
       trainingHours,
+      certificationName,
+      certificationExpiryDate,
+      certificationStatus,
+      location,
     } = req.body;
-
-    // Validate required fields
+    
     if (!employeeName || !employeeIdNumber || !trainingType || !trainingTopic || !dateAndTime || !trainingHours) {
       return res.status(400).json({
         success: false,
@@ -159,6 +162,10 @@ export const createTrainingTracker = async (req, res) => {
       dateAndTime,
       certificateNumber,
       trainingHours,
+      certificationName,
+      certificationExpiryDate,
+      certificationStatus,
+      location,
     });
 
     res.status(201).json(result);
