@@ -209,6 +209,8 @@ export const createTrainingTrackerService = async ({
   certificationExpiryDate,
   certificationStatus,
   location,
+  trainingEvidence,
+  certificateFiles,
 }) => {
   try {
     const parsedUserId = Number(userId);
@@ -231,6 +233,33 @@ export const createTrainingTrackerService = async ({
       throw new CustomError("Company branding not found", 404);
     }
 
+    if (trainingType.toLowerCase() === 'internal') {
+      if (!trainingEvidence || !Array.isArray(trainingEvidence) || trainingEvidence.length === 0) {
+        throw new CustomError("Training evidence is required for internal training", 400);
+      }
+      if (trainingEvidence.length > 10) {
+        throw new CustomError("Maximum 10 training evidence files allowed", 400);
+      }
+      
+      // For internal training, certificate details and files are not allowed
+      certificateNumber = null;
+      certificationName = null;
+      certificationExpiryDate = null;
+      certificationStatus = null;
+      certificateFiles = [];
+    } else {
+      if (trainingEvidence && trainingEvidence.length > 0) {
+        throw new CustomError("Training evidence is not allowed for external training", 400);
+      }
+      
+      // For external training, validate certificate files if provided
+      if (certificateFiles && Array.isArray(certificateFiles)) {
+        if (certificateFiles.length > 5) {
+          throw new CustomError("Maximum 5 certificate files allowed", 400);
+        }
+      }
+    }
+
     const trainingRecord = await prisma.trainingTracker.create({
       data: {
         userId: parsedUserId,
@@ -246,6 +275,8 @@ export const createTrainingTrackerService = async ({
         certificationExpiryDate: certificationExpiryDate ? new Date(certificationExpiryDate) : null,
         certificationStatus,
         location,
+        trainingEvidence: trainingEvidence || [],
+        certificateFiles: certificateFiles || [],
       },
       include: {
         companyBranding: true,
@@ -343,15 +374,59 @@ export const updateTrainingTrackerService = async ({ id, userId, updateData }) =
       "certificateNumber",
       "trainingHours",
       "companyBrandingId",
+      "certificationName",
+      "certificationExpiryDate",
+      "certificationStatus",
+      "location",
+      "trainingEvidence",
+      "certificateFiles",
     ];
 
     const filteredUpdateData = Object.fromEntries(
       Object.entries(updateData).filter(([key]) => allowedFields.includes(key))
     );
 
+    // Handle training type specific logic
+    if (filteredUpdateData.trainingType) {
+      if (filteredUpdateData.trainingType.toLowerCase() === 'internal') {
+        // For internal training, certificate details and files are not allowed
+        if (filteredUpdateData.certificateNumber || filteredUpdateData.certificationName || 
+            filteredUpdateData.certificationExpiryDate || filteredUpdateData.certificationStatus ||
+            (filteredUpdateData.certificateFiles && filteredUpdateData.certificateFiles.length > 0)) {
+          throw new CustomError("Certificate details and files are not allowed for internal training", 400);
+        }
+        
+        // Training evidence is required for internal training
+        if (!filteredUpdateData.trainingEvidence || !Array.isArray(filteredUpdateData.trainingEvidence) || 
+            filteredUpdateData.trainingEvidence.length === 0) {
+          throw new CustomError("Training evidence is required for internal training", 400);
+        }
+        if (filteredUpdateData.trainingEvidence.length > 10) {
+          throw new CustomError("Maximum 10 training evidence files allowed", 400);
+        }
+      } else {
+        // For external training, training evidence is not allowed
+        if (filteredUpdateData.trainingEvidence && filteredUpdateData.trainingEvidence.length > 0) {
+          throw new CustomError("Training evidence is not allowed for external training", 400);
+        }
+        
+        // Validate certificate files if provided
+        if (filteredUpdateData.certificateFiles && Array.isArray(filteredUpdateData.certificateFiles)) {
+          if (filteredUpdateData.certificateFiles.length > 5) {
+            throw new CustomError("Maximum 5 certificate files allowed", 400);
+          }
+        }
+      }
+    }
+
     // Convert dateAndTime to Date object if it exists
     if (filteredUpdateData.dateAndTime) {
       filteredUpdateData.dateAndTime = new Date(filteredUpdateData.dateAndTime);
+    }
+
+    // Convert certificationExpiryDate to Date object if it exists
+    if (filteredUpdateData.certificationExpiryDate) {
+      filteredUpdateData.certificationExpiryDate = new Date(filteredUpdateData.certificationExpiryDate);
     }
 
     const updated = await prisma.trainingTracker.update({

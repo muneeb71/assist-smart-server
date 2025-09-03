@@ -127,54 +127,83 @@ export const updateDocumentStatus = async (req, res) => {
   }
 };
 
-export const createTrainingTracker = async (req, res) => {
-  try {
-    const { userId } = req.user;
-    const {
-      companyBrandingId,
-      employeeName,
-      employeeIdNumber,
-      trainingType,
-      trainingTopic,
-      dateAndTime,
-      certificateNumber,
-      trainingHours,
-      certificationName,
-      certificationExpiryDate,
-      certificationStatus,
-      location,
-    } = req.body;
-    
-    if (!employeeName || !employeeIdNumber || !trainingType || !trainingTopic || !dateAndTime || !trainingHours) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields",
+  export const createTrainingTracker = async (req, res) => {
+    try {
+      const { userId } = req.user;
+      const {
+        companyBrandingId,
+        employeeName,
+        employeeIdNumber,
+        trainingType,
+        trainingTopic,
+        dateAndTime,
+        certificateNumber,
+        trainingHours,
+        certificationName,
+        certificationExpiryDate,
+        certificationStatus,
+        location,
+        trainingEvidence,
+        certificateFiles,
+      } = req.body;
+      
+      if (!employeeName || !trainingType || !trainingTopic || !dateAndTime || !trainingHours) {
+        return res.status(400).json({
+          success: false,
+          message: "Missing required fields",
+        });
+      }
+
+      if (trainingType.toLowerCase() === 'internal') {
+        if (!trainingEvidence || !Array.isArray(trainingEvidence) || trainingEvidence.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: "Training evidence is required for internal training",
+          });
+        }
+        if (trainingEvidence.length > 10) {
+          return res.status(400).json({
+            success: false,
+            message: "Maximum 10 training evidence files allowed",
+          });
+        }
+      } else {
+        // For external training, validate certificate files if provided
+        if (certificateFiles && Array.isArray(certificateFiles)) {
+          if (certificateFiles.length > 5) {
+            return res.status(400).json({
+              success: false,
+              message: "Maximum 5 certificate files allowed",
+            });
+          }
+        }
+      }
+
+      const result = await docsService.createTrainingTrackerService({
+        userId,
+        companyBrandingId,
+        employeeName,
+        employeeIdNumber,
+        trainingType,
+        trainingTopic,
+        dateAndTime,
+        certificateNumber,
+        trainingHours,
+        certificationName,
+        certificationExpiryDate,
+        certificationStatus,
+        location,
+        trainingEvidence,
+        certificateFiles,
       });
+
+      res.status(201).json(result);
+    } catch (err) {
+      res
+        .status(err.statusCode || 500)
+        .json({ success: false, message: err.message });
     }
-
-    const result = await docsService.createTrainingTrackerService({
-      userId,
-      companyBrandingId,
-      employeeName,
-      employeeIdNumber,
-      trainingType,
-      trainingTopic,
-      dateAndTime,
-      certificateNumber,
-      trainingHours,
-      certificationName,
-      certificationExpiryDate,
-      certificationStatus,
-      location,
-    });
-
-    res.status(201).json(result);
-  } catch (err) {
-    res
-      .status(err.statusCode || 500)
-      .json({ success: false, message: err.message });
-  }
-};
+  };
 
 export const listTrainingTrackers = async (req, res) => {
   try {

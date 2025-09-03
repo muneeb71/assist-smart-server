@@ -418,16 +418,18 @@ model TrainingTracker {
   userId                Int
   companyBrandingId     Int
   employeeName          String
-  employeeIdNumber      String
+  employeeIdNumber      String?
   trainingType          String
   trainingTopic         String
   dateAndTime           DateTime
-  certificateNumber     String?
   trainingHours         String
+  certificateNumber     String?
   certificationName     String?
   certificationExpiryDate DateTime?
   certificationStatus   String?
   location              String?
+  trainingEvidence      String[]        // Array of file URLs for internal training
+  certificateFiles      String[]        // Array of certificate file URLs for external training
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
   companyBranding       CompanyBranding @relation(fields: [companyBrandingId], references: [id])
