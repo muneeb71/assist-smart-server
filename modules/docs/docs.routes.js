@@ -6,6 +6,7 @@ const router = express.Router();
 
 // Training Tracker routes (MUST come before /:id routes to prevent conflicts)
 router.post("/training-tracker", authenticate, docsController.createTrainingTracker);
+router.post("/training-tracker/bulk", authenticate, docsController.createTrainingTrackerBulkController);
 router.get("/training-tracker", authenticate, docsController.listTrainingTrackers);
 router.get("/training-tracker/:id", authenticate, docsController.getTrainingTracker);
 router.put("/training-tracker/:id", authenticate, docsController.updateTrainingTracker);

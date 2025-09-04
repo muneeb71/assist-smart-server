@@ -416,13 +416,14 @@ model AuditLog {
 model TrainingTracker {
   id                    Int             @id @default(autoincrement())
   userId                Int
-  companyBrandingId     Int
+  companyBrandingId     Int?
   employeeName          String
   employeeIdNumber      String?
   trainingType          String
   trainingTopic         String
   dateAndTime           DateTime
   trainingHours         String
+  trainingGivenBy       String
   certificateNumber     String?
   certificationName     String?
   certificationExpiryDate DateTime?
@@ -432,6 +433,6 @@ model TrainingTracker {
   certificateFiles      String[]        // Array of certificate file URLs for external training
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
-  companyBranding       CompanyBranding @relation(fields: [companyBrandingId], references: [id])
+  companyBranding       CompanyBranding? @relation(fields: [companyBrandingId], references: [id])
   user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

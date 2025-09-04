@@ -223,7 +223,6 @@ export const createTrainingTrackerService = async ({
       throw new Error("Invalid companyBrandingId: must be a number");
     }
 
-    // Check if company branding exists
     const companyBranding = await prisma.companyBranding.findUnique({
       where: { id: parsedCompanyBrandingId },
       select: { id: true },
@@ -233,15 +232,24 @@ export const createTrainingTrackerService = async ({
       throw new CustomError("Company branding not found", 404);
     }
 
-    if (trainingType.toLowerCase() === 'internal') {
-      if (!trainingEvidence || !Array.isArray(trainingEvidence) || trainingEvidence.length === 0) {
-        throw new CustomError("Training evidence is required for internal training", 400);
+    if (trainingType.toLowerCase() === "internal") {
+      if (
+        !trainingEvidence ||
+        !Array.isArray(trainingEvidence) ||
+        trainingEvidence.length === 0
+      ) {
+        throw new CustomError(
+          "Training evidence is required for internal training",
+          400
+        );
       }
       if (trainingEvidence.length > 10) {
-        throw new CustomError("Maximum 10 training evidence files allowed", 400);
+        throw new CustomError(
+          "Maximum 10 training evidence files allowed",
+          400
+        );
       }
-      
-      // For internal training, certificate details and files are not allowed
+
       certificateNumber = null;
       certificationName = null;
       certificationExpiryDate = null;
@@ -249,10 +257,12 @@ export const createTrainingTrackerService = async ({
       certificateFiles = [];
     } else {
       if (trainingEvidence && trainingEvidence.length > 0) {
-        throw new CustomError("Training evidence is not allowed for external training", 400);
+        throw new CustomError(
+          "Training evidence is not allowed for external training",
+          400
+        );
       }
-      
-      // For external training, validate certificate files if provided
+
       if (certificateFiles && Array.isArray(certificateFiles)) {
         if (certificateFiles.length > 5) {
           throw new CustomError("Maximum 5 certificate files allowed", 400);
@@ -272,7 +282,9 @@ export const createTrainingTrackerService = async ({
         certificateNumber,
         trainingHours,
         certificationName,
-        certificationExpiryDate: certificationExpiryDate ? new Date(certificationExpiryDate) : null,
+        certificationExpiryDate: certificationExpiryDate
+          ? new Date(certificationExpiryDate)
+          : null,
         certificationStatus,
         location,
         trainingEvidence: trainingEvidence || [],
@@ -302,7 +314,6 @@ export const createTrainingTrackerService = async ({
 
 export const listTrainingTrackersService = async () => {
   try {
-
     const trainingRecords = await prisma.trainingTracker.findMany({
       orderBy: { createdAt: "desc" },
       include: {
@@ -355,7 +366,11 @@ export const getTrainingTrackerService = async ({ id, userId }) => {
   }
 };
 
-export const updateTrainingTrackerService = async ({ id, userId, updateData }) => {
+export const updateTrainingTrackerService = async ({
+  id,
+  userId,
+  updateData,
+}) => {
   try {
     const existing = await prisma.trainingTracker.findFirst({
       where: { id, userId },
@@ -388,30 +403,56 @@ export const updateTrainingTrackerService = async ({ id, userId, updateData }) =
 
     // Handle training type specific logic
     if (filteredUpdateData.trainingType) {
-      if (filteredUpdateData.trainingType.toLowerCase() === 'internal') {
+      if (filteredUpdateData.trainingType.toLowerCase() === "internal") {
         // For internal training, certificate details and files are not allowed
-        if (filteredUpdateData.certificateNumber || filteredUpdateData.certificationName || 
-            filteredUpdateData.certificationExpiryDate || filteredUpdateData.certificationStatus ||
-            (filteredUpdateData.certificateFiles && filteredUpdateData.certificateFiles.length > 0)) {
-          throw new CustomError("Certificate details and files are not allowed for internal training", 400);
+        if (
+          filteredUpdateData.certificateNumber ||
+          filteredUpdateData.certificationName ||
+          filteredUpdateData.certificationExpiryDate ||
+          filteredUpdateData.certificationStatus ||
+          (filteredUpdateData.certificateFiles &&
+            filteredUpdateData.certificateFiles.length > 0)
+        ) {
+          throw new CustomError(
+            "Certificate details and files are not allowed for internal training",
+            400
+          );
         }
-        
+
         // Training evidence is required for internal training
-        if (!filteredUpdateData.trainingEvidence || !Array.isArray(filteredUpdateData.trainingEvidence) || 
-            filteredUpdateData.trainingEvidence.length === 0) {
-          throw new CustomError("Training evidence is required for internal training", 400);
+        if (
+          !filteredUpdateData.trainingEvidence ||
+          !Array.isArray(filteredUpdateData.trainingEvidence) ||
+          filteredUpdateData.trainingEvidence.length === 0
+        ) {
+          throw new CustomError(
+            "Training evidence is required for internal training",
+            400
+          );
         }
         if (filteredUpdateData.trainingEvidence.length > 10) {
-          throw new CustomError("Maximum 10 training evidence files allowed", 400);
+          throw new CustomError(
+            "Maximum 10 training evidence files allowed",
+            400
+          );
         }
       } else {
         // For external training, training evidence is not allowed
-        if (filteredUpdateData.trainingEvidence && filteredUpdateData.trainingEvidence.length > 0) {
-          throw new CustomError("Training evidence is not allowed for external training", 400);
+        if (
+          filteredUpdateData.trainingEvidence &&
+          filteredUpdateData.trainingEvidence.length > 0
+        ) {
+          throw new CustomError(
+            "Training evidence is not allowed for external training",
+            400
+          );
         }
-        
+
         // Validate certificate files if provided
-        if (filteredUpdateData.certificateFiles && Array.isArray(filteredUpdateData.certificateFiles)) {
+        if (
+          filteredUpdateData.certificateFiles &&
+          Array.isArray(filteredUpdateData.certificateFiles)
+        ) {
           if (filteredUpdateData.certificateFiles.length > 5) {
             throw new CustomError("Maximum 5 certificate files allowed", 400);
           }
@@ -426,7 +467,9 @@ export const updateTrainingTrackerService = async ({ id, userId, updateData }) =
 
     // Convert certificationExpiryDate to Date object if it exists
     if (filteredUpdateData.certificationExpiryDate) {
-      filteredUpdateData.certificationExpiryDate = new Date(filteredUpdateData.certificationExpiryDate);
+      filteredUpdateData.certificationExpiryDate = new Date(
+        filteredUpdateData.certificationExpiryDate
+      );
     }
 
     const updated = await prisma.trainingTracker.update({
@@ -466,6 +509,119 @@ export const deleteTrainingTrackerService = async ({ id, userId }) => {
     await prisma.trainingTracker.delete({ where: { id } });
 
     return { success: true, message: "Training record deleted successfully" };
+  } catch (err) {
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
+  }
+};
+
+export const createTrainingTrackerBulkService = async (
+  data,
+  companyBrandingId,
+  userId
+) => {
+  try {
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      throw new CustomError("Data array is required and cannot be empty", 400);
+    }
+
+    if (data.length > 400) {
+      throw new CustomError("Maximum 400 records allowed per bulk upload", 400);
+    }
+
+    const result = {
+      successCount: 0,
+      errorCount: 0,
+      errors: [],
+      successIds: [],
+      totalProcessed: data.length,
+    };
+
+    for (let i = 0; i < data.length; i++) {
+      const record = data[i];
+
+      try {
+        if (
+          !record.employeeName ||
+          !record.trainingType ||
+          !record.trainingTopic ||
+          !record.dateAndTime ||
+          !record.trainingHours ||
+          !record.location ||
+          !record.trainingGivenBy
+        ) {
+          result.errors.push(`Row ${i + 1}: Missing required fields`);
+          result.errorCount++;
+          continue;
+        }
+
+        if (!["Internal", "External"].includes(record.trainingType)) {
+          result.errors.push(
+            `Row ${i + 1}: Invalid training type '${
+              record.trainingType
+            }'. Must be 'Internal' or 'External'`
+          );
+          result.errorCount++;
+          continue;
+        }
+
+        if (record.trainingType === "External") {
+          if (!record.certificateName || !record.certificationExpiryDate) {
+            result.errors.push(
+              `Row ${
+                i + 1
+              }: External training requires certificate name and expiry date`
+            );
+            result.errorCount++;
+            continue;
+          }
+        }
+
+        const trainingTracker = await prisma.trainingTracker.create({
+          data: {
+            companyBrandingId: companyBrandingId
+              ? parseInt(companyBrandingId)
+              : null,
+            userId: userId,
+            employeeName: record.employeeName,
+            employeeIdNumber: record.employeeIdNumber || null,
+            trainingType: record.trainingType,
+            trainingTopic: record.trainingTopic,
+            dateAndTime: new Date(record.dateAndTime),
+            certificateNumber: record.certificateNumber || null,
+            trainingHours: record.trainingHours,
+            location: record.location,
+            trainingGivenBy: record.trainingGivenBy,
+            certificationName: record.certificateName || null,
+            certificationExpiryDate: record.certificationExpiryDate
+              ? new Date(record.certificationExpiryDate)
+              : null,
+            certificationStatus: record.certificationStatus || "Valid",
+            certificateFiles: record.certificateFiles || [],
+            trainingEvidence: record.trainingEvidence || [],
+          },
+        });
+
+        result.successIds.push(trainingTracker.id);
+        result.successCount++;
+      } catch (error) {
+        console.error(`Error processing row ${i + 1}:`, error);
+
+        let errorMessage = `Row ${i + 1}: `;
+        if (error.code === "P2002") {
+          errorMessage += "Duplicate record found";
+        } else {
+          errorMessage += error.message || "Unknown error occurred";
+        }
+
+        result.errors.push(errorMessage);
+        result.errorCount++;
+      }
+    }
+
+    return result;
   } catch (err) {
     throw new CustomError(
       err.message || "Internal Server Error",
