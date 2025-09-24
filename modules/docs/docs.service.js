@@ -402,6 +402,34 @@ export const createTrainingTrackerService = async ({
       throw new CustomError("Company branding not found", 404);
     }
 
+    const existingRecord = await prisma.trainingTracker.findFirst({
+      where: {
+        userId: parsedUserId,
+        companyBrandingId: parsedCompanyBrandingId,
+        employeeIdNumber: employeeIdNumber,
+        trainingType: trainingType,
+        trainingTopic: trainingTopic,
+        dateAndTime: parseExcelDate(dateAndTime),
+      },
+      include: {
+        companyBranding: true,
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (existingRecord) {
+      throw new CustomError(
+        "Training record already exists for this employee with the same training details",
+        409
+      );
+    }
+
     if (trainingType.toLowerCase() === "internal") {
       if (
         !trainingEvidence ||
@@ -741,6 +769,31 @@ export const createTrainingTrackerBulkService = async (
             result.errorCount++;
             continue;
           }
+        }
+
+        const existingRecord = await prisma.trainingTracker.findFirst({
+          where: {
+            userId: userId,
+            companyBrandingId: companyBrandingId
+              ? parseInt(companyBrandingId)
+              : null,
+            employeeIdNumber: record.employeeIdNumber || null,
+            trainingType: record.trainingType,
+            trainingTopic: record.trainingTopic,
+            dateAndTime: parseExcelDate(record.dateAndTime),
+          },
+        });
+
+        if (existingRecord) {
+          result.errors.push(
+            `Row ${i + 1}: Training record already exists for employee ${
+              record.employeeName
+            } (ID: ${
+              record.employeeIdNumber || "N/A"
+            }) with same training details - skipped`
+          );
+          result.errorCount++;
+          continue;
         }
 
         const trainingTracker = await prisma.trainingTracker.create({
