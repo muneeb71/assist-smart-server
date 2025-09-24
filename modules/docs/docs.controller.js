@@ -217,7 +217,8 @@ export const createTrainingTracker = async (req, res) => {
 
 export const listTrainingTrackers = async (req, res) => {
   try {
-    const result = await docsService.listTrainingTrackersService();
+    const { userId } = req.user;
+    const result = await docsService.listTrainingTrackersService({ userId });
     res.json(result);
   } catch (err) {
     res

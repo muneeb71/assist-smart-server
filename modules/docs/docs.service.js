@@ -10,101 +10,105 @@ const parseExcelDate = (dateString) => {
   try {
     let dateStr = dateString.toString().trim();
 
-    if (dateStr.includes("T")) {
-      const [datePart, timePart] = dateStr.split("T");
-      const [first, second, year] = datePart.split("/");
-      const [hours, minutes] = timePart.split(":");
+    let jsDate = new Date(dateStr);
 
-      if (!first || !second || !year || !hours || !minutes) {
-        throw new Error("Invalid date format");
-      }
-
-      const firstNum = parseInt(first);
-      const secondNum = parseInt(second);
-      const yearNum = parseInt(year);
-      const hoursNum = parseInt(hours);
-      const minutesNum = parseInt(minutes);
-
-      if (
-        isNaN(firstNum) ||
-        isNaN(secondNum) ||
-        isNaN(yearNum) ||
-        isNaN(hoursNum) ||
-        isNaN(minutesNum)
-      ) {
-        throw new Error("Invalid numeric values");
-      }
-
-      if (
-        firstNum < 1 ||
-        firstNum > 31 ||
-        secondNum < 1 ||
-        secondNum > 31 ||
-        yearNum < 1900 ||
-        yearNum > 2100
-      ) {
-        throw new Error("Invalid date ranges");
-      }
-
-      if (hoursNum < 0 || hoursNum > 23 || minutesNum < 0 || minutesNum > 59) {
-        throw new Error("Invalid time ranges");
-      }
-
-      let jsDate = new Date(
-        `${first}/${second}/${year} ${hours}:${minutes}:00`
-      );
-
-      if (isNaN(jsDate.getTime())) {
-        jsDate = new Date(`${second}/${first}/${year} ${hours}:${minutes}:00`);
-      }
-
-      if (isNaN(jsDate.getTime())) {
-        throw new Error("Invalid date values");
-      }
-
-      return jsDate;
-    } else {
-      const [first, second, year] = dateStr.split("/");
-
-      if (!first || !second || !year) {
-        throw new Error("Invalid date format");
-      }
-
-      const firstNum = parseInt(first);
-      const secondNum = parseInt(second);
-      const yearNum = parseInt(year);
-
-      if (isNaN(firstNum) || isNaN(secondNum) || isNaN(yearNum)) {
-        throw new Error("Invalid numeric values");
-      }
-
-      if (
-        firstNum < 1 ||
-        firstNum > 31 ||
-        secondNum < 1 ||
-        secondNum > 31 ||
-        yearNum < 1900 ||
-        yearNum > 2100
-      ) {
-        throw new Error("Invalid date ranges");
-      }
-
-      let jsDate = new Date(`${first}/${second}/${year}`);
-
-      if (isNaN(jsDate.getTime())) {
-        jsDate = new Date(`${second}/${first}/${year}`);
-      }
-
-      if (isNaN(jsDate.getTime())) {
-        throw new Error("Invalid date values");
-      }
-
+    if (!isNaN(jsDate.getTime())) {
       return jsDate;
     }
+
+    const formats = [
+      dateStr,
+      dateStr.replace(/[-]/g, "/"),
+      dateStr.replace(/[.]/g, "/"),
+      ...(dateStr.includes("/")
+        ? [
+            dateStr,
+            dateStr.split("/").reverse().join("/"),
+            dateStr
+              .split("/")
+              .slice(0, 2)
+              .reverse()
+              .concat(dateStr.split("/").slice(2))
+              .join("/"),
+          ]
+        : []),
+      dateStr.replace("T", " "),
+      ...(isNaN(Number(dateStr))
+        ? []
+        : [new Date((Number(dateStr) - 25569) * 86400 * 1000)]),
+    ];
+
+    for (const format of formats) {
+      if (format && format !== dateStr) {
+        jsDate = new Date(format);
+        if (!isNaN(jsDate.getTime())) {
+          return jsDate;
+        }
+      }
+    }
+
+    const patterns = [
+      // DD/MM/YYYY or MM/DD/YYYY
+      /^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/,
+      // YYYY-MM-DD
+      /^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/,
+      // DD-MM-YYYY
+      /^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/,
+    ];
+
+    for (const pattern of patterns) {
+      const match = dateStr.match(pattern);
+      if (match) {
+        const [, part1, part2, part3, hour = "0", minute = "0", second = "0"] =
+          match;
+
+        const combinations = [
+          `${part1}/${part2}/${part3} ${hour}:${minute}:${second}`,
+          `${part2}/${part1}/${part3} ${hour}:${minute}:${second}`,
+          `${part3}-${part1.padStart(2, "0")}-${part2.padStart(
+            2,
+            "0"
+          )} ${hour}:${minute}:${second}`,
+          `${part3}-${part2.padStart(2, "0")}-${part1.padStart(
+            2,
+            "0"
+          )} ${hour}:${minute}:${second}`,
+        ];
+
+        for (const combo of combinations) {
+          jsDate = new Date(combo);
+          if (!isNaN(jsDate.getTime())) {
+            return jsDate;
+          }
+        }
+      }
+    }
+
+    const dateMatch = dateStr.match(
+      /(\d{1,4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,4})/
+    );
+    if (dateMatch) {
+      const [, a, b, c] = dateMatch;
+      const combinations = [
+        `${a}/${b}/${c}`,
+        `${b}/${a}/${c}`,
+        `${c}-${a.padStart(2, "0")}-${b.padStart(2, "0")}`,
+        `${c}-${b.padStart(2, "0")}-${a.padStart(2, "0")}`,
+      ];
+
+      for (const combo of combinations) {
+        jsDate = new Date(combo);
+        if (!isNaN(jsDate.getTime())) {
+          return jsDate;
+        }
+      }
+    }
+
+    throw new Error("Unable to parse date");
   } catch (error) {
-    console.error("Error parsing Excel date:", dateString, error);
+    console.error("Error parsing date:", dateString, error);
     throw new CustomError(
-      `Invalid date format: ${dateString}. Expected format: MM/DD/YYYY or DD/MM/YYYY (with optional time)`,
+      `Invalid date format: ${dateString}. Please use a standard date format like MM/DD/YYYY, DD/MM/YYYY, or YYYY-MM-DD`,
       400
     );
   }
@@ -478,9 +482,10 @@ export const createTrainingTrackerService = async ({
   }
 };
 
-export const listTrainingTrackersService = async () => {
+export const listTrainingTrackersService = async ({ userId }) => {
   try {
     const trainingRecords = await prisma.trainingTracker.findMany({
+      where: { userId },
       orderBy: { createdAt: "desc" },
       include: {
         companyBranding: true,
