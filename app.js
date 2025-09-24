@@ -7,6 +7,8 @@ import { authRouter } from "./modules/auth/index.js";
 import { adminRouter } from "./modules/admin/index.js";
 import { companyBrandingRouter } from "./modules/companyBranding/index.js";
 import { docsRouter } from "./modules/docs/index.js";
+import { auditRoutes } from "./modules/audit/index.js";
+import { suggestionsRoutes } from "./modules/suggestions/index.js";
 
 dotenv.config();
 const app = express();
@@ -24,6 +26,8 @@ const port = process.env.PORT || 8082;
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/company-branding", companyBrandingRouter);
 app.use("/api/v1/docs", docsRouter);
+app.use("/api/v1/audit", auditRoutes);
+app.use("/api/v1/suggestions", suggestionsRoutes);
 app.use("/admin", adminRouter);
 
 app.listen(port, () => {

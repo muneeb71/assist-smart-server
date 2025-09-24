@@ -15,33 +15,24 @@ model Role {
 }
 
 model User {
-  id                     Int                     @id @default(autoincrement())
-  email                  String                  @unique
-  fullName               String
-  mobileNumber           String?
-  gender                 String?
-  profilePicture         String?
-  roleId                 Int
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  appleId                String?                 @unique
-  accessLogs             AccessLog[]
-  auditLogs              AuditLog[]
-  CompanyBranding        CompanyBranding[]
-  Document               Document[]
-  incidentInvestigations IncidentInvestigation[]
-  incidentReports        IncidentReport[]
-  jobSafetyAnalyses      JobSafetyAnalysis[]
-  legalRegisters         LegalRegister[]
-  methodStatements       MethodStatement[]
-  otps                   Otp[]
-  responsePlans          ResponsePlan[]
-  riskAssessments        RiskAssessment[]
-  RoleAccessRequest      RoleAccessRequest[]
-  sitePermissions        SitePermission[]
-  toolboxTalks           ToolboxTalk[]
-  trainingTrackers       TrainingTracker[]
-  role                   Role                    @relation(fields: [roleId], references: [id])
+  id                Int                 @id @default(autoincrement())
+  email             String              @unique
+  fullName          String
+  mobileNumber      String?
+  gender            String?
+  profilePicture    String?
+  roleId            Int
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  appleId           String?             @unique
+  accessLogs        AccessLog[]
+  auditLogs         AuditLog[]
+  CompanyBranding   CompanyBranding[]
+  Document          Document[]
+  otps              Otp[]
+  RoleAccessRequest RoleAccessRequest[]
+  trainingTrackers  TrainingTracker[]
+  role              Role                @relation(fields: [roleId], references: [id])
 }
 
 model Otp {
@@ -75,48 +66,16 @@ model RoleAccessRequest {
 }
 
 model CompanyBranding {
-  id                     Int                     @id @default(autoincrement())
-  name                   String
-  documentControlNumber  String
-  logo                   String
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  userId                 Int?
-  user                   User?                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Document               Document[]
-  incidentInvestigations IncidentInvestigation[]
-  incidentReports        IncidentReport[]
-  jobSafetyAnalyses      JobSafetyAnalysis[]
-  legalRegisters         LegalRegister[]
-  methodStatements       MethodStatement[]
-  responsePlans          ResponsePlan[]
-  riskAssessments        RiskAssessment[]
-  sitePermissions        SitePermission[]
-  toolboxTalks           ToolboxTalk[]
-  trainingTrackers       TrainingTracker[]
-}
-
-model RiskAssessment {
-  id                      Int             @id @default(autoincrement())
-  userId                  Int
-  companyBrandingId       Int
-  industry                String
-  activityType            String
-  location                String
-  existingControlMeasures String
-  responsibleDepartments  String
-  preparedBy              String
-  preparedByOccupation    String
-  reviewedBy              String
-  reviewedByOccupation    String
-  approvedBy              String
-  approvedByOccupation    String
-  gcpFileUrl              String?
-  createdAt               DateTime        @default(now())
-  updatedAt               DateTime        @updatedAt
-  generatedContent        String?
-  companyBranding         CompanyBranding @relation(fields: [companyBrandingId], references: [id])
-  user                    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    Int               @id @default(autoincrement())
+  name                  String
+  documentControlNumber String
+  logo                  String
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  userId                Int?
+  user                  User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Document              Document[]
+  trainingTrackers      TrainingTracker[]
 }
 
 model Document {
@@ -135,273 +94,6 @@ model Document {
   user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model JobSafetyAnalysis {
-  id                Int             @id @default(autoincrement())
-  userId            Int
-  companyBrandingId Int
-  activityType      String
-  date              DateTime
-  time              String
-  numberOfWorkers   Int
-  knownHazards      String
-  participantNames  String
-  gcpFileUrl        String?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  companyBranding   CompanyBranding @relation(fields: [companyBrandingId], references: [id])
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model MethodStatement {
-  id                Int                            @id @default(autoincrement())
-  userId            Int
-  companyBrandingId Int
-  activityName      String
-  toolsAndEquipment String
-  numberOfPeople    Int
-  activityBrief     String
-  gcpFileUrl        String?
-  createdAt         DateTime                       @default(now())
-  updatedAt         DateTime                       @updatedAt
-  companyBranding   CompanyBranding                @relation(fields: [companyBrandingId], references: [id])
-  user              User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  safetyMeasures    MethodStatementSafetyMeasure[]
-  staffPersons      MethodStatementStaffPerson[]
-}
-
-model SafetyMeasure {
-  id                   Int                            @id @default(autoincrement())
-  name                 String
-  imageUrl             String?
-  createdAt            DateTime                       @default(now())
-  methodStatementLinks MethodStatementSafetyMeasure[]
-}
-
-model MethodStatementSafetyMeasure {
-  id                Int             @id @default(autoincrement())
-  methodStatementId Int
-  safetyMeasureId   Int?
-  name              String
-  methodStatement   MethodStatement @relation(fields: [methodStatementId], references: [id], onDelete: Cascade)
-  safetyMeasure     SafetyMeasure?  @relation(fields: [safetyMeasureId], references: [id], onDelete: Cascade)
-}
-
-model MethodStatementStaffPerson {
-  id                Int             @id @default(autoincrement())
-  methodStatementId Int
-  name              String
-  position          String
-  mobileNumber      String
-  methodStatement   MethodStatement @relation(fields: [methodStatementId], references: [id], onDelete: Cascade)
-}
-
-model ResponsePlan {
-  id                Int                         @id @default(autoincrement())
-  userId            Int
-  companyBrandingId Int
-  emergencyType     String
-  gcpFileUrl        String?
-  createdAt         DateTime                    @default(now())
-  updatedAt         DateTime                    @updatedAt
-  companyBranding   CompanyBranding             @relation(fields: [companyBrandingId], references: [id])
-  user              User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  evacuationMaps    ResponsePlanEvacuationMap[]
-  fireWardens       ResponsePlanFireWarden[]
-  floorWardens      ResponsePlanFloorWarden[]
-}
-
-model ResponsePlanEvacuationMap {
-  id             Int          @id @default(autoincrement())
-  responsePlanId Int
-  imageUrl       String
-  responsePlan   ResponsePlan @relation(fields: [responsePlanId], references: [id], onDelete: Cascade)
-}
-
-model ResponsePlanFireWarden {
-  id             Int          @id @default(autoincrement())
-  responsePlanId Int
-  name           String
-  responsePlan   ResponsePlan @relation(fields: [responsePlanId], references: [id], onDelete: Cascade)
-}
-
-model ResponsePlanFloorWarden {
-  id             Int          @id @default(autoincrement())
-  responsePlanId Int
-  name           String
-  responsePlan   ResponsePlan @relation(fields: [responsePlanId], references: [id], onDelete: Cascade)
-}
-
-model ToolboxTalk {
-  id                   Int                        @id @default(autoincrement())
-  userId               Int
-  companyBrandingId    Int
-  topic                String
-  keyPoints            String
-  numberOfParticipants Int
-  date                 DateTime
-  time                 String
-  gcpFileUrl           String?
-  createdAt            DateTime                   @default(now())
-  updatedAt            DateTime                   @updatedAt
-  companyBranding      CompanyBranding            @relation(fields: [companyBrandingId], references: [id])
-  user                 User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trainingMedia        ToolboxTalkTrainingMedia[]
-}
-
-model ToolboxTalkTrainingMedia {
-  id            Int         @id @default(autoincrement())
-  toolboxTalkId Int
-  imageUrl      String
-  toolboxTalk   ToolboxTalk @relation(fields: [toolboxTalkId], references: [id], onDelete: Cascade)
-}
-
-model IncidentReport {
-  id                Int             @id @default(autoincrement())
-  userId            Int
-  companyBrandingId Int
-  incidentType      String
-  description       String
-  date              DateTime
-  time              String
-  location          String
-  gcpFileUrl        String?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  companyBranding   CompanyBranding @relation(fields: [companyBrandingId], references: [id])
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model SitePermission {
-  id                  Int                         @id @default(autoincrement())
-  userId              Int
-  companyBrandingId   Int
-  location            String
-  date                DateTime
-  time                String
-  activityType        String
-  permitApplicantName String
-  permitHolderName    String
-  supervisorName      String
-  descriptionOfWork   String
-  permitValidity      String
-  permitExtension     String
-  permitApproverName  String
-  permitClosureDate   DateTime
-  gcpFileUrl          String?
-  createdAt           DateTime                    @default(now())
-  updatedAt           DateTime                    @updatedAt
-  companyBranding     CompanyBranding             @relation(fields: [companyBrandingId], references: [id])
-  user                User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  participants        SitePermissionParticipant[]
-}
-
-model SitePermissionParticipant {
-  id               Int            @id @default(autoincrement())
-  sitePermissionId Int
-  name             String
-  sitePermission   SitePermission @relation(fields: [sitePermissionId], references: [id], onDelete: Cascade)
-}
-
-model IncidentInvestigationEvidence {
-  id                      Int                   @id @default(autoincrement())
-  incidentInvestigationId Int
-  url                     String
-  createdAt               DateTime              @default(now())
-  incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id], onDelete: Cascade)
-}
-
-model IncidentInvestigation {
-  id                              Int                                                  @id @default(autoincrement())
-  userId                          Int
-  companyBrandingId               Int
-  incidentCategory                String
-  description                     String
-  date                            DateTime
-  time                            String
-  location                        String
-  createdAt                       DateTime                                             @default(now())
-  updatedAt                       DateTime                                             @updatedAt
-  generatedContent                String?
-  approvedBy                      String
-  approvedByDate                  String
-  assistedBy                      String
-  assistedByJobTitle              String
-  building                        String
-  eventDate                       String
-  eventTime                       String
-  investigationCloseOutDate       String
-  investigationDate               String
-  leadInvestigator                String
-  leadInvestigatorJobTitle        String
-  locationOfEvent                 String
-  personInvolved                  String
-  personInvolvedAddress           String
-  personInvolvedDaysAbsent        String
-  personInvolvedJobTitle          String
-  personInvolvedJoiningDate       String
-  personInvolvedSupervisor        String
-  producedBy                      String
-  producedByDate                  String
-  companyBranding                 CompanyBranding                                      @relation(fields: [companyBrandingId], references: [id])
-  user                            User                                                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  evidenceFiles                   IncidentInvestigationEvidence[]
-  immediateCausesUnsafeActs       IncidentInvestigationImmediateCauseUnsafeAct[]
-  immediateCausesUnsafeConditions IncidentInvestigationImmediateCauseUnsafeCondition[]
-  rootCausesPersonalFactors       IncidentInvestigationRootCausePersonalFactor[]
-}
-
-model IncidentInvestigationParticipant {
-  id                      Int    @id @default(autoincrement())
-  incidentInvestigationId Int
-  name                    String
-}
-
-model IncidentInvestigationWitness {
-  id                      Int    @id @default(autoincrement())
-  incidentInvestigationId Int
-  name                    String
-}
-
-model IncidentInvestigationDepartment {
-  id                      Int    @id @default(autoincrement())
-  incidentInvestigationId Int
-  name                    String
-}
-
-model IncidentInvestigationImmediateCauseUnsafeAct {
-  id                      Int                   @id @default(autoincrement())
-  incidentInvestigationId Int
-  name                    String
-  incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id], onDelete: Cascade)
-}
-
-model IncidentInvestigationImmediateCauseUnsafeCondition {
-  id                      Int                   @id @default(autoincrement())
-  incidentInvestigationId Int
-  name                    String
-  incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id], onDelete: Cascade)
-}
-
-model IncidentInvestigationRootCausePersonalFactor {
-  id                      Int                   @id @default(autoincrement())
-  incidentInvestigationId Int
-  name                    String
-  incidentInvestigation   IncidentInvestigation @relation(fields: [incidentInvestigationId], references: [id], onDelete: Cascade)
-}
-
-model LegalRegister {
-  id                Int             @id @default(autoincrement())
-  country           String
-  category          String
-  year              Int
-  companyBrandingId Int
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  userId            Int?
-  companyBranding   CompanyBranding @relation(fields: [companyBrandingId], references: [id])
-  user              User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
 model AuditLog {
   id           Int      @id @default(autoincrement())
   userId       Int
@@ -414,25 +106,25 @@ model AuditLog {
 }
 
 model TrainingTracker {
-  id                    Int             @id @default(autoincrement())
-  userId                Int
-  companyBrandingId     Int?
-  employeeName          String
-  employeeIdNumber      String?
-  trainingType          String
-  trainingTopic         String
-  dateAndTime           DateTime
-  trainingHours         String
-  trainingGivenBy       String
-  certificateNumber     String?
-  certificationName     String?
+  id                      Int              @id @default(autoincrement())
+  userId                  Int
+  companyBrandingId       Int?
+  employeeName            String
+  employeeIdNumber        String?
+  trainingType            String
+  trainingTopic           String
+  dateAndTime             DateTime
+  trainingHours           String
+  trainingGivenBy         String
+  certificateNumber       String?
+  certificationName       String?
   certificationExpiryDate DateTime?
-  certificationStatus   String?
-  location              String?
-  trainingEvidence      String[]        // Array of file URLs for internal training
-  certificateFiles      String[]        // Array of certificate file URLs for external training
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
-  companyBranding       CompanyBranding? @relation(fields: [companyBrandingId], references: [id])
-  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  certificationStatus     String?
+  location                String?
+  trainingEvidence        String[] // Array of file URLs for internal training
+  certificateFiles        String[] // Array of certificate file URLs for external training
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+  companyBranding         CompanyBranding? @relation(fields: [companyBrandingId], references: [id])
+  user                    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

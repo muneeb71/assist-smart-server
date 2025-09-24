@@ -2,6 +2,113 @@ import prisma from "../../config/prisma.js";
 import { CustomError } from "../../lib/customError.js";
 import { streamUsingGemini } from "../../lib/generateContent.js";
 import { getDocumentPrompt } from "../../lib/prompts.js";
+import * as auditService from "../audit/audit.service.js";
+
+const parseExcelDate = (dateString) => {
+  if (!dateString) return null;
+
+  try {
+    let dateStr = dateString.toString().trim();
+
+    if (dateStr.includes("T")) {
+      const [datePart, timePart] = dateStr.split("T");
+      const [first, second, year] = datePart.split("/");
+      const [hours, minutes] = timePart.split(":");
+
+      if (!first || !second || !year || !hours || !minutes) {
+        throw new Error("Invalid date format");
+      }
+
+      const firstNum = parseInt(first);
+      const secondNum = parseInt(second);
+      const yearNum = parseInt(year);
+      const hoursNum = parseInt(hours);
+      const minutesNum = parseInt(minutes);
+
+      if (
+        isNaN(firstNum) ||
+        isNaN(secondNum) ||
+        isNaN(yearNum) ||
+        isNaN(hoursNum) ||
+        isNaN(minutesNum)
+      ) {
+        throw new Error("Invalid numeric values");
+      }
+
+      if (
+        firstNum < 1 ||
+        firstNum > 31 ||
+        secondNum < 1 ||
+        secondNum > 31 ||
+        yearNum < 1900 ||
+        yearNum > 2100
+      ) {
+        throw new Error("Invalid date ranges");
+      }
+
+      if (hoursNum < 0 || hoursNum > 23 || minutesNum < 0 || minutesNum > 59) {
+        throw new Error("Invalid time ranges");
+      }
+
+      let jsDate = new Date(
+        `${first}/${second}/${year} ${hours}:${minutes}:00`
+      );
+
+      if (isNaN(jsDate.getTime())) {
+        jsDate = new Date(`${second}/${first}/${year} ${hours}:${minutes}:00`);
+      }
+
+      if (isNaN(jsDate.getTime())) {
+        throw new Error("Invalid date values");
+      }
+
+      return jsDate;
+    } else {
+      const [first, second, year] = dateStr.split("/");
+
+      if (!first || !second || !year) {
+        throw new Error("Invalid date format");
+      }
+
+      const firstNum = parseInt(first);
+      const secondNum = parseInt(second);
+      const yearNum = parseInt(year);
+
+      if (isNaN(firstNum) || isNaN(secondNum) || isNaN(yearNum)) {
+        throw new Error("Invalid numeric values");
+      }
+
+      if (
+        firstNum < 1 ||
+        firstNum > 31 ||
+        secondNum < 1 ||
+        secondNum > 31 ||
+        yearNum < 1900 ||
+        yearNum > 2100
+      ) {
+        throw new Error("Invalid date ranges");
+      }
+
+      let jsDate = new Date(`${first}/${second}/${year}`);
+
+      if (isNaN(jsDate.getTime())) {
+        jsDate = new Date(`${second}/${first}/${year}`);
+      }
+
+      if (isNaN(jsDate.getTime())) {
+        throw new Error("Invalid date values");
+      }
+
+      return jsDate;
+    }
+  } catch (error) {
+    console.error("Error parsing Excel date:", dateString, error);
+    throw new CustomError(
+      `Invalid date format: ${dateString}. Expected format: MM/DD/YYYY or DD/MM/YYYY (with optional time)`,
+      400
+    );
+  }
+};
 
 export const listDocumentsService = async ({ userId }) => {
   try {
@@ -37,8 +144,24 @@ export const getDocumentService = async ({ id, userId }) => {
 
 export const deleteDocumentService = async ({ id, userId }) => {
   try {
-    // TODO: Delete file from GCP bucket if needed
+    const documentToDelete = await prisma.document.findFirst({
+      where: { id, userId },
+      include: { companyBranding: true },
+    });
+
+    if (!documentToDelete) {
+      throw new CustomError("Document not found", 404);
+    }
+
     await prisma.document.delete({ where: { id } });
+
+    await auditService.logDocumentDeletion({
+      userId,
+      documentType: "Document",
+      documentId: id,
+      documentData: documentToDelete,
+    });
+
     return { success: true };
   } catch (err) {
     throw new CustomError(
@@ -114,6 +237,21 @@ export const streamDocumentService = async ({
       },
     });
     console.log("createdDocument", createdDocument);
+
+    await auditService.logDocumentCreation({
+      userId: parsedUserId,
+      documentType: "Document",
+      documentId: createdDocument.id,
+      documentData: {
+        category,
+        subCategory,
+        status: "open",
+        companyBrandingId: companyBrandingIdToUse,
+        inputsJson: JSON.stringify(parsedInputs),
+        generatedContent: "",
+        gcpFileUrl: null,
+      },
+    });
     async function* stream() {
       yield* (async function* () {
         for await (const chunk of streamUsingGemini(prompt)) {
@@ -122,9 +260,17 @@ export const streamDocumentService = async ({
         }
       })();
 
-      await prisma.document.update({
+      const updatedDocument = await prisma.document.update({
         where: { id: createdDocument.id },
         data: { generatedContent: fullText },
+      });
+
+      await auditService.logDocumentUpdate({
+        userId: parsedUserId,
+        documentType: "Document",
+        documentId: createdDocument.id,
+        oldData: createdDocument,
+        newData: updatedDocument,
       });
     }
 
@@ -145,6 +291,7 @@ export const updateDocumentService = async ({ id, userId, updateData }) => {
   try {
     const existing = await prisma.document.findFirst({ where: { id, userId } });
     if (!existing) throw new CustomError("Not found", 404);
+
     const allowedFields = [
       "category",
       "subCategory",
@@ -157,10 +304,20 @@ export const updateDocumentService = async ({ id, userId, updateData }) => {
     const filteredUpdateData = Object.fromEntries(
       Object.entries(updateData).filter(([key]) => allowedFields.includes(key))
     );
+
     const updated = await prisma.document.update({
       where: { id },
       data: filteredUpdateData,
     });
+
+    await auditService.logDocumentUpdate({
+      userId,
+      documentType: "Document",
+      documentId: id,
+      oldData: existing,
+      newData: updated,
+    });
+
     return { success: true, data: updated };
   } catch (err) {
     throw new CustomError(
@@ -185,6 +342,15 @@ export const updateDocumentStatusService = async ({ id, userId, status }) => {
       data: { status },
       include: { companyBranding: true },
     });
+
+    await auditService.logDocumentStatusChange({
+      userId,
+      documentType: "Document",
+      documentId: id,
+      oldStatus: existing.status,
+      newStatus: status,
+    });
+
     return { success: true, data: updated };
   } catch (err) {
     console.log(err);
@@ -278,12 +444,12 @@ export const createTrainingTrackerService = async ({
         employeeIdNumber,
         trainingType,
         trainingTopic,
-        dateAndTime: new Date(dateAndTime),
+        dateAndTime: parseExcelDate(dateAndTime),
         certificateNumber,
         trainingHours,
         certificationName,
         certificationExpiryDate: certificationExpiryDate
-          ? new Date(certificationExpiryDate)
+          ? parseExcelDate(certificationExpiryDate)
           : null,
         certificationStatus,
         location,
@@ -401,10 +567,8 @@ export const updateTrainingTrackerService = async ({
       Object.entries(updateData).filter(([key]) => allowedFields.includes(key))
     );
 
-    // Handle training type specific logic
     if (filteredUpdateData.trainingType) {
       if (filteredUpdateData.trainingType.toLowerCase() === "internal") {
-        // For internal training, certificate details and files are not allowed
         if (
           filteredUpdateData.certificateNumber ||
           filteredUpdateData.certificationName ||
@@ -419,7 +583,6 @@ export const updateTrainingTrackerService = async ({
           );
         }
 
-        // Training evidence is required for internal training
         if (
           !filteredUpdateData.trainingEvidence ||
           !Array.isArray(filteredUpdateData.trainingEvidence) ||
@@ -437,7 +600,6 @@ export const updateTrainingTrackerService = async ({
           );
         }
       } else {
-        // For external training, training evidence is not allowed
         if (
           filteredUpdateData.trainingEvidence &&
           filteredUpdateData.trainingEvidence.length > 0
@@ -448,7 +610,6 @@ export const updateTrainingTrackerService = async ({
           );
         }
 
-        // Validate certificate files if provided
         if (
           filteredUpdateData.certificateFiles &&
           Array.isArray(filteredUpdateData.certificateFiles)
@@ -460,12 +621,10 @@ export const updateTrainingTrackerService = async ({
       }
     }
 
-    // Convert dateAndTime to Date object if it exists
     if (filteredUpdateData.dateAndTime) {
       filteredUpdateData.dateAndTime = new Date(filteredUpdateData.dateAndTime);
     }
 
-    // Convert certificationExpiryDate to Date object if it exists
     if (filteredUpdateData.certificationExpiryDate) {
       filteredUpdateData.certificationExpiryDate = new Date(
         filteredUpdateData.certificationExpiryDate
@@ -589,14 +748,14 @@ export const createTrainingTrackerBulkService = async (
             employeeIdNumber: record.employeeIdNumber || null,
             trainingType: record.trainingType,
             trainingTopic: record.trainingTopic,
-            dateAndTime: new Date(record.dateAndTime),
+            dateAndTime: parseExcelDate(record.dateAndTime),
             certificateNumber: record.certificateNumber || null,
             trainingHours: record.trainingHours,
             location: record.location,
             trainingGivenBy: record.trainingGivenBy,
             certificationName: record.certificateName || null,
             certificationExpiryDate: record.certificationExpiryDate
-              ? new Date(record.certificationExpiryDate)
+              ? parseExcelDate(record.certificationExpiryDate)
               : null,
             certificationStatus: record.certificationStatus || "Valid",
             certificateFiles: record.certificateFiles || [],
