@@ -1,21 +1,16 @@
 import * as auditService from "./audit.service.js";
 
-/**
- * Audit Controller
- * Handles HTTP requests for audit logging operations
- */
-
 export const getDocumentAuditHistory = async (req, res) => {
   try {
     const { id } = req.params;
     const { userId } = req.user;
-    
+
     const result = await auditService.getDocumentAuditHistory({
       documentId: Number(id),
       documentType: "Document",
-      userId
+      userId,
     });
-    
+
     res.json(result);
   } catch (err) {
     res
@@ -28,12 +23,12 @@ export const getUserAuditHistory = async (req, res) => {
   try {
     const { userId } = req.user;
     const { limit = 50 } = req.query;
-    
+
     const result = await auditService.getUserAuditHistory({
       userId: Number(userId),
-      limit: Number(limit)
+      limit: Number(limit),
     });
-    
+
     res.json(result);
   } catch (err) {
     res
@@ -45,15 +40,15 @@ export const getUserAuditHistory = async (req, res) => {
 export const getAllAuditLogs = async (req, res) => {
   try {
     const { limit = 100, offset = 0, action, documentType, userId } = req.query;
-    
+
     const result = await auditService.getAllAuditLogs({
       limit: Number(limit),
       offset: Number(offset),
       action,
       documentType,
-      userId: userId ? Number(userId) : undefined
+      userId: userId ? Number(userId) : undefined,
     });
-    
+
     res.json(result);
   } catch (err) {
     res
@@ -66,7 +61,7 @@ export const getAuditStats = async (req, res) => {
   try {
     const { userId } = req.user;
     const { startDate, endDate } = req.query;
-    
+
     // This would be implemented in the service
     // For now, return a placeholder response
     res.json({
@@ -74,8 +69,8 @@ export const getAuditStats = async (req, res) => {
       data: {
         totalActions: 0,
         actionsByType: {},
-        recentActivity: []
-      }
+        recentActivity: [],
+      },
     });
   } catch (err) {
     res

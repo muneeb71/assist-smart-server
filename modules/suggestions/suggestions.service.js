@@ -124,39 +124,28 @@ const generateAISuggestions = async ({
 };
 
 const buildSystemPrompt = (context, documentType, section) => {
-  const basePrompt = `You are an expert document editor specializing in professional workplace documentation. 
-Analyze the provided content and generate specific, actionable suggestions for improvement.
+  const basePrompt = `You are a Health and Safety consultant providing professional suggestions for workplace safety documentation. Focus on the ${context} context for ${documentType} documents.
 
-Context Guidelines:
-- Focus on the specified context: ${context}
-- Consider the document type: ${documentType}
-- Pay attention to the section: ${section}
+Generate professional suggestions that improve safety effectiveness, regulatory compliance, and operational excellence. Use industry-standard terminology and provide actionable recommendations.
 
-Suggestion Types:
-- grammar: Grammar, punctuation, and language improvements
-- content: Content enhancement, structure, and clarity
-- style: Writing style, tone, and professionalism
-- compliance: Regulatory compliance and legal requirements
-- safety: Safety protocols, procedures, and risk mitigation
-
-Priority Levels:
-- high: Critical issues that must be addressed
-- medium: Important improvements that enhance quality
-- low: Nice-to-have enhancements
-
-Response Format:
-Return a JSON array of suggestions with this exact structure:
+Return ONLY a valid JSON array with this structure:
 [
   {
     "id": "unique-id",
-    "type": "safety|grammar|content|style|compliance",
-    "category": "Human-readable category",
+    "type": "safety|compliance|emergency|accountability|documentation|procedure|training|quality|risk-management|assessment|monitoring|professional|safety-culture|clarity",
+    "category": "Professional category name", 
     "priority": "high|medium|low",
-    "suggestion": "Specific recommendation",
-    "improvedText": "Enhanced version (optional)",
-    "reasoning": "Why this suggestion is valuable"
+    "suggestion": "Specific actionable recommendation",
+    "improvedText": "Enhanced version with implementation details",
+    "reasoning": "Professional justification"
   }
-]`;
+]
+
+JSON requirements:
+- Start with [ and end with ]
+- All strings in double quotes
+- No trailing commas
+- Valid JSON syntax`;
 
   // Add context-specific guidance
   const contextGuidance = getContextGuidance(context);
@@ -166,85 +155,393 @@ Return a JSON array of suggestions with this exact structure:
 const getContextGuidance = (context) => {
   const guidanceMap = {
     safety: `
-Safety Context Guidelines:
-- Emphasize safety protocols, emergency procedures, and risk mitigation
-- Focus on clear, actionable safety instructions
-- Highlight potential hazards and protective measures
-- Ensure compliance with safety regulations and standards
-- Prioritize worker protection and accident prevention`,
+**SAFETY MANAGEMENT SYSTEM ENHANCEMENT**:
+- Implement comprehensive safety management system elements including policy development, hazard identification, risk assessment, and continuous improvement processes
+- Reference specific OSHA 29 CFR standards, ANSI Z10, ISO 45001, and industry-specific safety regulations
+- Include emergency response procedures, evacuation protocols, and crisis management frameworks
+- Emphasize safety culture development, leadership commitment, and employee engagement strategies
+- Focus on incident prevention, near-miss reporting, and safety performance monitoring
+- Include specific safety equipment requirements, PPE specifications, and maintenance protocols
+- Address contractor safety management, visitor safety protocols, and third-party oversight
+- Include safety training requirements, competency standards, and certification frameworks
+- Emphasize hazard communication, safety data sheets, and chemical safety protocols
+- Include workplace inspection procedures, safety audit requirements, and corrective action tracking`,
 
     compliance: `
-Compliance Context Guidelines:
-- Emphasize regulatory references and legal requirements
-- Focus on audit trails and documentation standards
-- Highlight compliance gaps and regulatory risks
-- Ensure proper legal language and terminology
-- Prioritize regulatory adherence and legal protection`,
+**REGULATORY COMPLIANCE FRAMEWORK**:
+- Establish comprehensive compliance framework with specific federal, state, and local regulations
+- Include industry-specific standards (OSHA, HSE, OSHAD, EPA, NFPA, etc.) with exact regulatory citations
+- Implement compliance monitoring procedures, audit protocols, and regulatory change management
+- Include legal documentation requirements, record-keeping standards, and retention schedules
+- Address non-compliance reporting procedures, corrective action plans, and regulatory communication
+- Include permit requirements, licensing standards, and regulatory notification procedures
+- Emphasize regulatory training requirements, competency standards, and certification frameworks
+- Include compliance risk assessment, regulatory gap analysis, and continuous improvement processes
+- Address multi-jurisdictional compliance, international standards, and cross-border regulatory requirements
+- Include regulatory liaison procedures, inspection preparation, and enforcement response protocols`,
 
     procedure: `
-Procedure Context Guidelines:
-- Improve step-by-step instructions and clarity
-- Focus on responsibilities and accountability
-- Enhance workflow and process efficiency
-- Ensure logical sequence and completeness
-- Prioritize operational effectiveness and clarity`,
+**STANDARDIZED PROCEDURE DEVELOPMENT**:
+- Develop comprehensive standardized procedures with clear step-by-step instructions and quality checkpoints
+- Include responsibility matrices, authority frameworks, and accountability measures for procedure execution
+- Implement quality control measures, verification steps, and continuous improvement processes
+- Include competency requirements, training standards, and qualification frameworks for procedure execution
+- Address procedure version control, approval processes, and change management protocols
+- Include procedure effectiveness monitoring, performance metrics, and review schedules
+- Emphasize procedure accessibility, training delivery, and user comprehension verification
+- Include emergency procedure modifications, crisis response protocols, and contingency planning
+- Address procedure integration with other systems, workflow optimization, and efficiency improvements
+- Include procedure compliance monitoring, audit requirements, and corrective action tracking`,
 
     risk: `
-Risk Context Guidelines:
-- Enhance risk assessment and control measures
-- Focus on monitoring procedures and mitigation strategies
-- Highlight potential risks and their impacts
-- Ensure comprehensive risk coverage
-- Prioritize risk reduction and management effectiveness`,
+**RISK MANAGEMENT METHODOLOGY**:
+- Implement comprehensive risk assessment methodology with likelihood, consequence, and risk rating criteria
+- Apply hierarchy of controls systematically: elimination, substitution, engineering, administrative, and PPE
+- Include hazard identification procedures, risk characterization, and control measure selection
+- Implement ongoing risk monitoring, review schedules, and continuous improvement processes
+- Include risk communication protocols, stakeholder engagement, and risk awareness programs
+- Address residual risk management, risk acceptance criteria, and risk tolerance frameworks
+- Include risk assessment documentation, review procedures, and update protocols
+- Emphasize risk-based decision making, resource allocation, and priority setting
+- Include risk training requirements, competency standards, and risk management culture development
+- Address emerging risks, new hazard identification, and proactive risk management strategies`,
 
     general: `
-General Context Guidelines:
-- Focus on grammar, style, and general content improvements
-- Enhance readability and professional tone
-- Improve structure and organization
-- Ensure clarity and conciseness
-- Prioritize overall document quality and professionalism`,
+**PROFESSIONAL DOCUMENTATION STANDARDS**:
+- Enhance professional tone, industry terminology, and stakeholder communication effectiveness
+- Improve document structure, organization, and user comprehension through clear formatting and logical flow
+- Include regulatory compliance language, legal terminology, and industry-standard expressions
+- Emphasize clarity, conciseness, and actionable content that supports decision-making and implementation
+- Include comprehensive coverage of relevant topics with appropriate depth and technical accuracy
+- Address document accessibility, translation requirements, and multi-language considerations
+- Include professional formatting standards, visual hierarchy, and user-friendly presentation
+- Emphasize consistency with organizational standards, branding guidelines, and professional appearance
+- Include document version control, approval processes, and change management protocols
+- Address document lifecycle management, review schedules, and continuous improvement processes`,
   };
 
   return guidanceMap[context] || guidanceMap.general;
 };
 
 const buildUserPrompt = (content, maxSuggestions) => {
-  return `Analyze the following content and provide up to ${maxSuggestions} specific, actionable suggestions for improvement:
+  return `Analyze the following health and safety document content and provide ${maxSuggestions} professional suggestions for improvement:
 
-Content:
 "${content}"
 
-Requirements:
-- Generate exactly ${maxSuggestions} suggestions
-- Each suggestion must be specific and actionable
-- Include improved text where applicable
-- Provide clear reasoning for each suggestion
-- Ensure suggestions are relevant to the content
-- Return only valid JSON array format`;
+Generate exactly ${maxSuggestions} suggestions in JSON array format. Each suggestion must have:
+- id: unique identifier
+- type: one of safety, compliance, emergency, accountability, documentation, procedure, training, quality, risk-management, assessment, monitoring, professional, safety-culture, clarity
+- category: professional category name
+- priority: high, medium, or low
+- suggestion: specific actionable recommendation
+- improvedText: enhanced version with implementation details
+- reasoning: professional justification
+
+Return ONLY valid JSON array - no explanations or markdown.`;
 };
 
 const parseAIResponse = (response, maxSuggestions) => {
   try {
-    const jsonMatch = response.match(/\[[\s\S]*\]/);
+    // First, try to extract JSON array from the response
+    let jsonMatch = response.match(/\[[\s\S]*\]/);
+
     if (!jsonMatch) {
-      throw new Error("No JSON array found in response");
+      // Try to find any JSON object structure
+      jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        // If we found an object, try to wrap it in an array
+        jsonMatch[0] = `[${jsonMatch[0]}]`;
+      } else {
+        throw new Error("No JSON structure found in response");
+      }
     }
 
-    const suggestions = JSON.parse(jsonMatch[0]);
+    let jsonString = jsonMatch[0];
 
-    return suggestions.slice(0, maxSuggestions).map((suggestion, index) => ({
-      id: suggestion.id || `suggestion-${Date.now()}-${index}`,
-      type: suggestion.type || "content",
-      category: suggestion.category || "General Improvement",
-      priority: suggestion.priority || "medium",
-      suggestion: suggestion.suggestion || "",
-      improvedText: suggestion.improvedText || null,
-      reasoning: suggestion.reasoning || "",
-    }));
+    // Clean up common AI response issues
+    jsonString = cleanJsonString(jsonString);
+
+    // Try to fix incomplete strings in JSON
+    jsonString = fixIncompleteStrings(jsonString);
+
+    const suggestions = JSON.parse(JSON.stringify(jsonString));
+
+    // Ensure we have an array
+    const suggestionsArray = Array.isArray(suggestions)
+      ? suggestions
+      : [suggestions];
+
+    const processedSuggestions = suggestionsArray
+      .slice(0, maxSuggestions)
+      .map((suggestion, index) => ({
+        id: suggestion.id || `suggestion-${Date.now()}-${index}`,
+        type: suggestion.type || "content",
+        category: suggestion.category || "General Improvement",
+        priority: suggestion.priority || "medium",
+        suggestion: suggestion.suggestion || "",
+        improvedText: suggestion.improvedText || null,
+        reasoning: suggestion.reasoning || "",
+      }));
+
+    // Check if we got meaningful suggestions
+    const hasValidSuggestions = processedSuggestions.some(
+      (s) => s.suggestion && s.suggestion.trim().length > 0
+    );
+
+    if (!hasValidSuggestions) {
+      return generateFallbackSuggestions(maxSuggestions);
+    }
+
+    return processedSuggestions;
   } catch (error) {
     console.error("Error parsing AI response:", error);
+    console.error(
+      "Response that failed to parse:",
+      response.substring(0, 500) + "..."
+    );
+
+    // Try one more time with a more aggressive cleanup
+    try {
+      const recoveredSuggestions = attemptJsonRecovery(
+        response,
+        maxSuggestions
+      );
+      if (recoveredSuggestions && recoveredSuggestions.length > 0) {
+        return recoveredSuggestions;
+      }
+    } catch (recoveryError) {
+      console.error("JSON recovery also failed:", recoveryError);
+    }
+
     return generateFallbackSuggestions(maxSuggestions);
+  }
+};
+
+const fixIncompleteStrings = (jsonString) => {
+  try {
+    // Find incomplete strings (strings that don't have closing quotes)
+    const incompleteStringPattern = /"([^"]*?)(?=\s*[,}\]])/g;
+    let fixedJson = jsonString;
+
+    // Check if there are any incomplete strings at the end
+    const lastQuoteIndex = fixedJson.lastIndexOf('"');
+    const lastBraceIndex = fixedJson.lastIndexOf("}");
+    const lastBracketIndex = fixedJson.lastIndexOf("]");
+
+    if (lastQuoteIndex > Math.max(lastBraceIndex, lastBracketIndex)) {
+      // There's an incomplete string at the end, try to close it
+      const beforeLastQuote = fixedJson.substring(0, lastQuoteIndex);
+      const afterLastQuote = fixedJson.substring(lastQuoteIndex + 1);
+
+      // Find the next structural character
+      const nextStructural = afterLastQuote.match(/[,}\]\]]/);
+      if (nextStructural) {
+        const structuralIndex = afterLastQuote.indexOf(nextStructural[0]);
+        const incompleteString = afterLastQuote.substring(0, structuralIndex);
+
+        // Close the string and continue
+        fixedJson =
+          beforeLastQuote +
+          '"' +
+          incompleteString +
+          '"' +
+          afterLastQuote.substring(structuralIndex);
+      }
+    }
+
+    return fixedJson;
+  } catch (error) {
+    console.error("Error fixing incomplete strings:", error);
+    return jsonString;
+  }
+};
+
+const attemptJsonRecovery = (response, maxSuggestions) => {
+  try {
+    // Try to extract individual suggestion objects from the response
+    const suggestionMatches = response.match(/\{[^{}]*"id"[^{}]*\}/g);
+
+    if (suggestionMatches && suggestionMatches.length > 0) {
+      const recoveredSuggestions = [];
+
+      for (const match of suggestionMatches) {
+        try {
+          // Try to clean and parse each individual suggestion
+          let cleanedMatch = match;
+
+          // Fix incomplete strings in individual objects
+          if (!cleanedMatch.endsWith("}")) {
+            cleanedMatch += "}";
+          }
+
+          // Remove incomplete properties
+          cleanedMatch = cleanedMatch.replace(/"[^"]*$/, '""');
+
+          const suggestion = JSON.parse(cleanedMatch);
+          recoveredSuggestions.push(suggestion);
+        } catch (e) {
+          // Skip this suggestion if it can't be parsed
+          continue;
+        }
+      }
+
+      if (recoveredSuggestions.length > 0) {
+        return recoveredSuggestions
+          .slice(0, maxSuggestions)
+          .map((suggestion, index) => ({
+            id: suggestion.id || `recovered-${Date.now()}-${index}`,
+            type: suggestion.type || "content",
+            category: suggestion.category || "General Improvement",
+            priority: suggestion.priority || "medium",
+            suggestion: suggestion.suggestion || "",
+            improvedText: suggestion.improvedText || null,
+            reasoning: suggestion.reasoning || "",
+          }));
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error in JSON recovery:", error);
+    return null;
+  }
+};
+
+const cleanJsonString = (jsonString) => {
+  try {
+    // Remove any markdown formatting
+    jsonString = jsonString.replace(/```json\s*|\s*```/g, "");
+    jsonString = jsonString.replace(/```\s*|\s*```/g, "");
+
+    // Handle truncated JSON responses
+    jsonString = handleTruncatedJson(jsonString);
+
+    // Fix common JSON issues
+    // Remove trailing commas before closing brackets/braces
+    jsonString = jsonString.replace(/,(\s*[}\]])/g, "$1");
+
+    // Fix unescaped quotes in strings (more conservative approach)
+    jsonString = jsonString.replace(/(?<!\\)"(?=.*":)/g, '\\"');
+
+    // Fix bad escaped characters
+    jsonString = jsonString.replace(/\\([^"\\/bfnrt])/g, "\\\\$1");
+
+    // Ensure proper string escaping
+    jsonString = jsonString.replace(/(?<!\\)\\(?![\\"/bfnrt])/g, "\\\\");
+
+    // Fix any remaining quote issues in string values
+    jsonString = jsonString.replace(
+      /"([^"]*)"([^"]*)"([^"]*)"\s*:/g,
+      '"$1\\"$2\\"$3":'
+    );
+
+    return jsonString;
+  } catch (cleanError) {
+    console.error("Error cleaning JSON string:", cleanError);
+    return jsonString; // Return original if cleaning fails
+  }
+};
+
+const handleTruncatedJson = (jsonString) => {
+  try {
+    // Check if the JSON appears to be truncated
+    const openBraces = (jsonString.match(/\{/g) || []).length;
+    const closeBraces = (jsonString.match(/\}/g) || []).length;
+    const openBrackets = (jsonString.match(/\[/g) || []).length;
+    const closeBrackets = (jsonString.match(/\]/g) || []).length;
+
+    // If we have more opening than closing braces/brackets, try to fix it
+    if (openBraces > closeBraces || openBrackets > closeBrackets) {
+      console.log("Detected potentially truncated JSON, attempting to fix...");
+
+      // Find the last complete object
+      let fixedJson = jsonString;
+
+      // Try to find the last complete object and close it properly
+      const lastCompleteObject = findLastCompleteObject(jsonString);
+      if (lastCompleteObject) {
+        fixedJson = lastCompleteObject;
+      } else {
+        // If we can't find a complete object, try to close the current structure
+        const missingBraces = openBraces - closeBraces;
+        const missingBrackets = openBrackets - closeBrackets;
+
+        for (let i = 0; i < missingBraces; i++) {
+          fixedJson += "}";
+        }
+        for (let i = 0; i < missingBrackets; i++) {
+          fixedJson += "]";
+        }
+      }
+
+      console.log("Fixed truncated JSON structure");
+      return fixedJson;
+    }
+
+    return jsonString;
+  } catch (error) {
+    console.error("Error handling truncated JSON:", error);
+    return jsonString;
+  }
+};
+
+const findLastCompleteObject = (jsonString) => {
+  try {
+    // Try to find the last complete object by working backwards
+    let depth = 0;
+    let inString = false;
+    let escapeNext = false;
+    let lastCompleteIndex = -1;
+
+    for (let i = jsonString.length - 1; i >= 0; i--) {
+      const char = jsonString[i];
+
+      if (escapeNext) {
+        escapeNext = false;
+        continue;
+      }
+
+      if (char === "\\") {
+        escapeNext = true;
+        continue;
+      }
+
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+
+      if (!inString) {
+        if (char === "}" || char === "]") {
+          depth++;
+        } else if (char === "{" || char === "[") {
+          depth--;
+          if (depth === 0) {
+            lastCompleteIndex = i;
+            break;
+          }
+        }
+      }
+    }
+
+    if (lastCompleteIndex > 0) {
+      // Found a complete object, extract it
+      const completePart = jsonString.substring(0, lastCompleteIndex + 1);
+
+      // Try to parse it to make sure it's valid
+      try {
+        JSON.parse(completePart);
+        return completePart;
+      } catch (e) {
+        // If it's not valid, return null
+        return null;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error finding last complete object:", error);
+    return null;
   }
 };
 
@@ -252,21 +549,63 @@ const generateFallbackSuggestions = (maxSuggestions) => {
   const fallbackSuggestions = [
     {
       id: `fallback-${Date.now()}-1`,
-      type: "content",
-      category: "Content Enhancement",
-      priority: "medium",
+      type: "safety",
+      category: "Safety Management System",
+      priority: "high",
       suggestion:
-        "Consider adding more specific details and examples to improve clarity.",
-      reasoning: "Specific details help readers better understand the content.",
+        "Implement comprehensive safety management system elements including policy development, hazard identification procedures, and continuous improvement processes to ensure systematic safety oversight.",
+      improvedText:
+        "Establish a comprehensive Safety Management System (SMS) framework including:\n- Safety policy and objectives aligned with organizational goals\n- Hazard identification and risk assessment procedures\n- Safety performance monitoring and measurement systems\n- Incident investigation and corrective action processes\n- Management review and continuous improvement protocols\n- Employee participation and safety culture development programs",
+      reasoning:
+        "A systematic safety management approach ensures consistent implementation of safety protocols, regulatory compliance, and continuous improvement in workplace safety performance.",
     },
     {
       id: `fallback-${Date.now()}-2`,
-      type: "style",
-      category: "Style Improvement",
+      type: "compliance",
+      category: "Regulatory Compliance Framework",
+      priority: "high",
+      suggestion:
+        "Establish comprehensive regulatory compliance framework with specific regulatory references, monitoring procedures, and audit protocols to ensure legal adherence and audit readiness.",
+      improvedText:
+        "Develop a comprehensive regulatory compliance framework including:\n- Applicable federal, state, and local regulation identification\n- Industry-specific standards compliance (OSHA, HSE, ISO 45001, etc.)\n- Compliance monitoring procedures and audit protocols\n- Regulatory change management and update procedures\n- Non-compliance reporting and corrective action processes\n- Training requirements and competency standards for compliance personnel",
+      reasoning:
+        "A structured compliance framework ensures systematic adherence to all applicable regulations, reduces legal risk, and prepares the organization for regulatory audits and inspections.",
+    },
+    {
+      id: `fallback-${Date.now()}-3`,
+      type: "procedure",
+      category: "Standardized Procedure Development",
+      priority: "medium",
+      suggestion:
+        "Develop standardized procedures with clear step-by-step instructions, responsibility assignments, and quality checkpoints to ensure operational consistency and accountability.",
+      improvedText:
+        "Implement standardized procedure framework including:\n- Clear step-by-step operational instructions with quality gates\n- Responsibility matrices and accountability measures\n- Procedure version control and approval processes\n- Competency requirements and training standards\n- Procedure effectiveness monitoring and review schedules\n- Integration with safety management and quality systems",
+      reasoning:
+        "Standardized procedures ensure operational consistency, reduce errors, improve efficiency, and provide clear accountability frameworks for all personnel involved in safety-critical activities.",
+    },
+    {
+      id: `fallback-${Date.now()}-4`,
+      type: "training",
+      category: "Competency and Training Framework",
+      priority: "medium",
+      suggestion:
+        "Establish comprehensive training and competency framework with specific qualification requirements, assessment procedures, and certification standards to ensure personnel competency.",
+      improvedText:
+        "Develop comprehensive training and competency framework including:\n- Role-specific competency requirements and qualification standards\n- Initial and refresher training schedules with competency assessment\n- Training delivery methods and evaluation procedures\n- Competency verification and certification processes\n- Training records management and audit requirements\n- Integration with safety performance and continuous improvement programs",
+      reasoning:
+        "Proper training and competency frameworks ensure all personnel have the necessary knowledge, skills, and abilities to perform their safety responsibilities effectively and maintain regulatory compliance.",
+    },
+    {
+      id: `fallback-${Date.now()}-5`,
+      type: "professional",
+      category: "Professional Documentation Standards",
       priority: "low",
       suggestion:
-        "Review the tone and ensure it matches the document's purpose.",
-      reasoning: "Consistent tone improves document professionalism.",
+        "Enhance professional documentation standards with consistent formatting, industry terminology, and stakeholder communication frameworks to improve document effectiveness and user comprehension.",
+      improvedText:
+        "Implement professional documentation standards including:\n- Consistent formatting and visual hierarchy guidelines\n- Industry-standard terminology and professional language\n- Document version control and approval processes\n- Accessibility and translation considerations\n- User comprehension verification and feedback mechanisms\n- Integration with organizational branding and communication standards",
+      reasoning:
+        "Professional documentation standards improve user comprehension, enhance organizational credibility, ensure consistency across all safety documents, and support effective stakeholder communication.",
     },
   ];
 
@@ -403,10 +742,211 @@ const logSuggestionError = async ({
   }
 };
 
+export const generateBatchSuggestions = async ({
+  contents,
+  documentType,
+  maxSuggestions = 3,
+  userId,
+  ipAddress,
+}) => {
+  const startTime = Date.now();
+
+  try {
+    validateBatchInput({ contents, documentType, maxSuggestions });
+
+    const results = await generateBatchAISuggestions(contents, maxSuggestions);
+
+    const processingTime = Date.now() - startTime;
+
+    const response = {
+      results,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        contentCount: contents.length,
+        documentType: documentType || "policies-procedures",
+        processingTime,
+        requestId: `batch-req-${Date.now()}-${Math.random()
+          .toString(36)
+          .substr(2, 9)}`,
+      },
+    };
+
+    await logBatchSuggestionRequest({
+      userId,
+      ipAddress,
+      documentType,
+      contentCount: contents.length,
+      processingTime,
+    });
+
+    return response;
+  } catch (error) {
+    console.error("Error generating batch suggestions:", error);
+
+    await logBatchSuggestionError({
+      userId,
+      ipAddress,
+      error: error.message,
+      documentType,
+    });
+
+    throw error;
+  }
+};
+
+const generateBatchAISuggestions = async (contents, maxSuggestions) => {
+  const results = [];
+
+  for (const content of contents) {
+    const { content: text, context, documentType, id } = content;
+
+    try {
+      const suggestions = await generateAISuggestions({
+        content: text,
+        context,
+        documentType,
+        section: `Batch Item ${id}`,
+        maxSuggestions,
+      });
+
+      const contentSuggestions = suggestions.map((suggestion, index) => ({
+        ...suggestion,
+        id: `batch-suggestion-${Date.now()}-${id}-${index}`,
+      }));
+
+      results.push({
+        id,
+        suggestions: contentSuggestions,
+      });
+    } catch (error) {
+      console.error(`Error generating suggestions for content ${id}:`, error);
+
+      const fallbackSuggestions = generateFallbackSuggestions(
+        maxSuggestions
+      ).map((suggestion, index) => ({
+        ...suggestion,
+        id: `fallback-suggestion-${Date.now()}-${id}-${index}`,
+      }));
+
+      results.push({
+        id,
+        suggestions: fallbackSuggestions,
+      });
+    }
+  }
+
+  return results;
+};
+
+const validateBatchInput = ({ contents, documentType, maxSuggestions }) => {
+  if (!contents || !Array.isArray(contents) || contents.length === 0) {
+    throw new CustomError(
+      "Contents array is required and must not be empty",
+      400
+    );
+  }
+
+  if (contents.length > 20) {
+    throw new CustomError(
+      "Maximum 20 content items allowed per batch request",
+      400
+    );
+  }
+
+  const validDocumentTypes = [
+    "policies-procedures",
+    "risk-assessment",
+    "incident-report",
+  ];
+  if (documentType && !validDocumentTypes.includes(documentType)) {
+    throw new CustomError(
+      `Invalid document type. Must be one of: ${validDocumentTypes.join(", ")}`,
+      400
+    );
+  }
+
+  if (maxSuggestions < 1 || maxSuggestions > 5) {
+    throw new CustomError("Max suggestions must be between 1 and 5", 400);
+  }
+
+  contents.forEach((content, index) => {
+    if (!content.id || !content.content || !content.context) {
+      throw new CustomError(
+        `Content item ${
+          index + 1
+        } is missing required fields: id, content, context`,
+        400
+      );
+    }
+
+    if (
+      typeof content.content !== "string" ||
+      content.content.trim().length === 0
+    ) {
+      throw new CustomError(
+        `Content item ${index + 1} must have non-empty content`,
+        400
+      );
+    }
+
+    if (content.content.length > 10000) {
+      throw new CustomError(
+        `Content item ${index + 1} exceeds maximum length of 10,000 characters`,
+        400
+      );
+    }
+
+    const validContexts = [
+      "safety",
+      "compliance",
+      "procedure",
+      "risk",
+      "general",
+    ];
+    if (!validContexts.includes(content.context)) {
+      throw new CustomError(
+        `Content item ${
+          index + 1
+        } has invalid context. Must be one of: ${validContexts.join(", ")}`,
+        400
+      );
+    }
+  });
+};
+
+const logBatchSuggestionRequest = async ({
+  userId,
+  ipAddress,
+  documentType,
+  contentCount,
+  processingTime,
+}) => {
+  try {
+    console.log(
+      `Batch AI Suggestion Request: User ${userId}, IP ${ipAddress}, Type ${documentType}, Count ${contentCount}, Time ${processingTime}ms`
+    );
+  } catch (error) {
+    console.error("Error logging batch suggestion request:", error);
+  }
+};
+
+const logBatchSuggestionError = async ({
+  userId,
+  ipAddress,
+  error,
+  documentType,
+}) => {
+  try {
+    console.error(
+      `Batch AI Suggestion Error: User ${userId}, IP ${ipAddress}, Error ${error}, Type ${documentType}`
+    );
+  } catch (logError) {
+    console.error("Error logging batch suggestion error:", logError);
+  }
+};
+
 export const getSuggestionStats = async ({ userId, startDate, endDate }) => {
   try {
-    // TODO: Implement actual statistics retrieval from database
-    // For now, return mock data
     return {
       success: true,
       data: {

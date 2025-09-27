@@ -1,6 +1,7 @@
 import * as suggestionsService from "./suggestions.service.js";
 import { successResponse, errorResponse } from "../../lib/response.js";
 import { CustomError } from "../../lib/customError.js";
+import { sanitizeContent } from "../../lib/utils.js";
 
 export const generateSuggestions = async (req, res) => {
   try {
@@ -62,11 +63,19 @@ export const getSuggestionStats = async (req, res) => {
       endDate,
     });
 
-    return successResponse(res, "Statistics retrieved successfully", result.data);
+    return successResponse(
+      res,
+      "Statistics retrieved successfully",
+      result.data
+    );
   } catch (error) {
     console.error("Error in getSuggestionStats controller:", error);
 
-    return errorResponse(res, "Failed to retrieve suggestion statistics", error);
+    return errorResponse(
+      res,
+      "Failed to retrieve suggestion statistics",
+      error
+    );
   }
 };
 
@@ -83,6 +92,22 @@ export const healthCheck = async (req, res) => {
         gemini: hasApiKey ? "configured" : "not_configured",
         cache: "operational",
         rateLimit: "operational",
+      },
+      endpoints: {
+        "POST /api/suggestions": "Generate single AI suggestions",
+        "POST /api/suggestions/batch": "Generate batch AI suggestions",
+        "GET /api/suggestions/stats": "Get suggestion statistics",
+        "GET /api/suggestions/health": "Health check endpoint",
+        "GET /api/suggestions/options": "Get available options",
+      },
+      rateLimit: {
+        single: { windowMs: 60 * 60 * 1000, max: 100 },
+        batch: { windowMs: 60 * 60 * 1000, max: 50 },
+      },
+      limits: {
+        maxBatchSize: 20,
+        maxContentLength: 10000,
+        requestSizeLimit: "5MB for batch requests, 1MB for single requests",
       },
       version: "1.0.0",
     };
@@ -202,21 +227,60 @@ export const getOptions = async (req, res) => {
   }
 };
 
-const sanitizeContent = (content) => {
-  if (typeof content !== "string") {
-    return "";
+export const generateBatchSuggestions = async (req, res) => {
+  try {
+    const { contents, documentType, maxSuggestions } = req.body;
+    const { userId } = req.user;
+    const ipAddress =
+      req.ip ||
+      req.connection.remoteAddress ||
+      req.headers["x-forwarded-for"] ||
+      "unknown";
+
+    if (!contents || !Array.isArray(contents) || contents.length === 0) {
+      return errorResponse(
+        res,
+        "Contents array is required and must not be empty",
+        null,
+        400
+      );
+    }
+
+    if (contents.length > 20) {
+      return errorResponse(
+        res,
+        "Maximum 20 content items allowed per batch request",
+        null,
+        400
+      );
+    }
+
+    const sanitizedContents = contents.map((content) => ({
+      ...content,
+      content: sanitizeContent(content.content),
+    }));
+    console.log("result", sanitizedContents);
+    const result = await suggestionsService.generateBatchSuggestions({
+      contents: sanitizedContents,
+      documentType,
+      maxSuggestions: maxSuggestions || 3,
+      userId,
+      ipAddress,
+    });
+    console.log("result", result);
+    return successResponse(
+      res,
+      "Batch suggestions generated successfully",
+      result
+    );
+  } catch (error) {
+    console.error("Error in generateBatchSuggestions controller:", error);
+
+    if (error instanceof CustomError) {
+      return errorResponse(res, error.message, null, error.statusCode);
+    }
+
+    return errorResponse(res, "Internal server error", error);
   }
-
-  let sanitized = content
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
-    .replace(/javascript:/gi, "")
-    .replace(/on\w+\s*=/gi, "")
-    .trim();
-
-  if (sanitized.length > 10000) {
-    sanitized = sanitized.substring(0, 10000);
-  }
-
-  return sanitized;
 };
+

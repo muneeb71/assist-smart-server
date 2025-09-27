@@ -1,8 +1,8 @@
-# AI-Powered Document Suggestions API
+# AI Suggestions API Documentation
 
 ## Overview
 
-The Suggestions API provides intelligent content analysis and improvement suggestions for document editing. It uses Google's Gemini 2.5 Flash model to generate context-aware suggestions based on document type, section, and content.
+The AI Suggestions API provides production-ready endpoints for health and safety professionals to get intelligent content improvement suggestions. The API supports both single content analysis and batch processing for efficient document review.
 
 ## Base URL
 
@@ -12,89 +12,190 @@ The Suggestions API provides intelligent content analysis and improvement sugges
 
 ## Authentication
 
-All endpoints require authentication via Bearer token:
+All endpoints require authentication. Include the JWT token in the Authorization header:
 
-```http
+```
 Authorization: Bearer <your-jwt-token>
 ```
 
 ## Endpoints
 
-### 1. Generate Suggestions
+### 1. Generate Single AI Suggestions
 
-**POST** `/api/v1/suggestions`
+**Endpoint:** `POST /api/v1/suggestions`
 
-Generate AI-powered suggestions for document content.
+**Description:** Generate AI-powered suggestions for a single piece of content.
 
-#### Request Body
+**Rate Limit:** 100 requests per hour per user
 
+**Request Body:**
 ```json
 {
-  "content": "Workers must follow safety procedures",
-  "context": "safety",
-  "documentType": "policies-procedures",
-  "section": "safety-procedures",
+  "content": "Your document content to analyze",
+  "context": "safety|compliance|procedure|risk|general",
+  "documentType": "policies-procedures|risk-assessment|incident-report",
+  "section": "Section name or identifier",
   "maxSuggestions": 3
 }
 ```
 
-#### Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `content` | string | Yes | The text content to analyze (max 10,000 characters) |
-| `context` | enum | Yes | Analysis context: `safety`, `compliance`, `procedure`, `risk`, `general` |
-| `documentType` | enum | Yes | Document type: `policies-procedures`, `risk-assessment`, `incident-report` |
-| `section` | string | Yes | Document section being edited |
-| `maxSuggestions` | number | No | Number of suggestions (1-5, default: 3) |
-
-#### Response
-
+**Response:**
 ```json
 {
   "success": true,
+  "message": "Suggestions generated successfully",
   "data": {
     "suggestions": [
       {
-        "id": "suggestion-123",
+        "id": "suggestion-1234567890-0",
         "type": "safety",
-        "category": "Safety Enhancement",
+        "category": "Safety Management System",
         "priority": "high",
-        "suggestion": "Consider adding specific safety protocols and emergency procedures.",
-        "improvedText": "Workers must follow safety procedures including:\n- Personal protective equipment requirements\n- Emergency evacuation procedures\n- Incident reporting protocols",
-        "reasoning": "Safety sections benefit from specific protocols and emergency procedures."
+        "suggestion": "Implement comprehensive safety management system elements...",
+        "improvedText": "Enhanced version with improvements",
+        "reasoning": "A systematic approach ensures consistent implementation..."
       }
     ],
     "metadata": {
-      "timestamp": "2025-01-22T18:34:42.208Z",
-      "contentLength": 35,
+      "timestamp": "2024-01-15T10:30:00.000Z",
+      "contentLength": 500,
       "context": "safety",
       "documentType": "policies-procedures",
-      "section": "safety-procedures",
-      "processingTime": 1250,
+      "section": "Emergency Procedures",
+      "processingTime": 1500,
       "cached": false
     }
   }
 }
 ```
 
-### 2. Get Options
+### 2. Generate Batch AI Suggestions
 
-**GET** `/api/v1/suggestions/options`
+**Endpoint:** `POST /api/v1/suggestions/batch`
 
-Get available contexts, document types, and suggestion types.
+**Description:** Generate AI-powered suggestions for multiple content items in a single request. Each content item is processed individually using the same AI generation logic as single requests.
 
-#### Response
+**Rate Limit:** 50 requests per hour per user
 
+**Request Size Limit:** 5MB
+
+**Request Body:**
+```json
+{
+  "contents": [
+    {
+      "id": "content-1",
+      "content": "First document content to analyze",
+      "context": "safety",
+      "documentType": "policies-procedures"
+    },
+    {
+      "id": "content-2", 
+      "content": "Second document content to analyze",
+      "context": "compliance",
+      "documentType": "risk-assessment"
+    }
+  ],
+  "documentType": "policies-procedures",
+  "maxSuggestions": 3
+}
+```
+
+**Response:**
 ```json
 {
   "success": true,
+  "message": "Batch suggestions generated successfully",
+  "data": {
+    "results": [
+      {
+        "id": "content-1",
+        "suggestions": [
+          {
+            "id": "suggestion-1234567890-content-1-0",
+            "type": "safety",
+            "category": "Safety Management System",
+            "priority": "high",
+            "suggestion": "Implement comprehensive safety management system elements...",
+            "improvedText": "Enhanced version with improvements",
+            "reasoning": "A systematic approach ensures consistent implementation..."
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "timestamp": "2024-01-15T10:30:00.000Z",
+      "contentCount": 2,
+      "documentType": "policies-procedures",
+      "processingTime": 2500,
+      "requestId": "batch-req-1234567890-abc123"
+    }
+  }
+}
+```
+
+### 3. Health Check
+
+**Endpoint:** `GET /api/v1/suggestions/health`
+
+**Description:** Check the health status of the AI suggestions service.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Health check completed",
+  "data": {
+    "status": "healthy",
+    "timestamp": "2024-01-15T10:30:00.000Z",
+    "services": {
+      "gemini": "configured",
+      "cache": "operational",
+      "rateLimit": "operational"
+    },
+    "endpoints": {
+      "POST /api/suggestions": "Generate single AI suggestions",
+      "POST /api/suggestions/batch": "Generate batch AI suggestions",
+      "GET /api/suggestions/stats": "Get suggestion statistics",
+      "GET /api/suggestions/health": "Health check endpoint",
+      "GET /api/suggestions/options": "Get available options"
+    },
+    "rateLimit": {
+      "single": { "windowMs": 3600000, "max": 100 },
+      "batch": { "windowMs": 3600000, "max": 50 }
+    },
+    "limits": {
+      "maxBatchSize": 20,
+      "maxContentLength": 10000,
+      "requestSizeLimit": "5MB for batch requests, 1MB for single requests"
+    },
+    "version": "1.0.0"
+  }
+}
+```
+
+### 4. Get Options
+
+**Endpoint:** `GET /api/v1/suggestions/options`
+
+**Description:** Get available options for contexts, document types, and suggestion types.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Options retrieved successfully",
   "data": {
     "contexts": [
       {
         "value": "safety",
         "label": "Safety",
         "description": "Safety protocols and procedures"
+      },
+      {
+        "value": "compliance",
+        "label": "Compliance", 
+        "description": "Regulatory compliance and legal requirements"
       }
     ],
     "documentTypes": [
@@ -127,217 +228,184 @@ Get available contexts, document types, and suggestion types.
 }
 ```
 
-### 3. Health Check
+### 5. Get Statistics
 
-**GET** `/api/v1/suggestions/health`
+**Endpoint:** `GET /api/v1/suggestions/stats`
 
-Check AI service availability and configuration.
+**Description:** Get usage statistics for the authenticated user.
 
-#### Response
+**Query Parameters:**
+- `startDate` (optional): Start date for statistics (ISO format)
+- `endDate` (optional): End date for statistics (ISO format)
 
-```json
-{
-  "success": true,
-  "data": {
-    "status": "healthy",
-    "timestamp": "2025-01-22T18:34:42.208Z",
-    "services": {
-      "openai": "configured",
-      "cache": "operational",
-      "rateLimit": "operational"
-    },
-    "version": "1.0.0"
-  }
-}
-```
+## Suggestion Types
 
-### 4. Get Statistics
-
-**GET** `/api/v1/suggestions/stats`
-
-Get AI suggestion usage statistics (requires authentication).
-
-#### Query Parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `startDate` | string | Start date for statistics (ISO format) |
-| `endDate` | string | End date for statistics (ISO format) |
-
-#### Response
-
-```json
-{
-  "success": true,
-  "data": {
-    "totalRequests": 150,
-    "averageProcessingTime": 1250,
-    "suggestionsByType": {
-      "safety": 45,
-      "compliance": 30,
-      "grammar": 25
-    },
-    "contextDistribution": {
-      "safety": 40,
-      "compliance": 35,
-      "general": 25
-    },
-    "errorRate": 0.02
-  }
-}
-```
-
-## Context-Specific Logic
+The API provides comprehensive, professional suggestion types specifically designed for health and safety professionals:
 
 ### Safety Context
-- Focuses on safety protocols, emergency procedures, and risk mitigation
-- Emphasizes clear, actionable safety instructions
-- Highlights potential hazards and protective measures
-- Ensures compliance with safety regulations
+- **Safety Management System**: Comprehensive OHSMS implementation with policy development, hazard identification, and continuous improvement
+- **Regulatory Compliance**: OSHA 29 CFR, ANSI Z10, ISO 45001, HSE, OSHAD standards integration
+- **Emergency Preparedness**: Emergency response procedures, evacuation protocols, and crisis management frameworks
+- **Safety Culture Development**: Leadership commitment, employee engagement, and organizational safety commitment
+- **Incident Prevention**: Near-miss reporting, safety performance monitoring, and proactive safety measures
 
 ### Compliance Context
-- Emphasizes regulatory references and legal requirements
-- Focuses on audit trails and documentation standards
-- Highlights compliance gaps and regulatory risks
-- Ensures proper legal language and terminology
+- **Regulatory Framework**: Federal, state, and local regulation compliance with specific regulatory citations
+- **Audit Readiness**: Compliance monitoring procedures, audit protocols, and regulatory change management
+- **Legal Documentation**: Record-keeping standards, retention schedules, and regulatory notification procedures
+- **Multi-jurisdictional Compliance**: International standards and cross-border regulatory requirements
+- **Enforcement Response**: Regulatory liaison procedures and inspection preparation protocols
 
 ### Procedure Context
-- Improves step-by-step instructions and clarity
-- Focuses on responsibilities and accountability
-- Enhances workflow and process efficiency
-- Ensures logical sequence and completeness
+- **Standardized Procedures**: Clear step-by-step instructions with quality checkpoints and responsibility matrices
+- **Competency Framework**: Training standards, qualification requirements, and certification processes
+- **Quality Assurance**: Quality control measures, verification steps, and continuous improvement processes
+- **Procedure Integration**: Workflow optimization, system integration, and efficiency improvements
+- **Change Management**: Version control, approval processes, and procedure update protocols
 
 ### Risk Context
-- Enhances risk assessment and control measures
-- Focuses on monitoring procedures and mitigation strategies
-- Highlights potential risks and their impacts
-- Ensures comprehensive risk coverage
+- **Risk Assessment Methodology**: Comprehensive risk evaluation with likelihood, consequence, and risk rating criteria
+- **Hierarchy of Controls**: Systematic application of elimination, substitution, engineering, administrative, and PPE controls
+- **Risk Monitoring**: Ongoing risk management, review schedules, and continuous improvement processes
+- **Risk Communication**: Stakeholder engagement, risk awareness programs, and risk-based decision making
+- **Emerging Risk Management**: Proactive risk identification and emerging hazard management strategies
 
 ### General Context
-- Focuses on grammar, style, and general content improvements
-- Enhances readability and professional tone
-- Improves structure and organization
-- Ensures clarity and conciseness
+- **Professional Documentation**: Industry terminology, regulatory compliance language, and professional communication standards
+- **Document Structure**: Clear formatting, logical organization, and user comprehension optimization
+- **Stakeholder Engagement**: Professional communication frameworks and multi-language considerations
+- **Audit Trail Management**: Document version control, approval processes, and lifecycle management
+- **Accessibility Standards**: Translation requirements and user-friendly presentation guidelines
 
-## Error Handling
+## Error Responses
 
-### HTTP Status Codes
-
-| Code | Description |
-|------|-------------|
-| 200 | Success |
-| 400 | Bad Request - Invalid input parameters |
-| 401 | Unauthorized - Missing or invalid authentication |
-| 413 | Payload Too Large - Request exceeds size limit |
-| 429 | Too Many Requests - Rate limit exceeded |
-| 500 | Internal Server Error - Server error |
-| 503 | Service Unavailable - AI service unavailable |
-
-### Error Response Format
-
+### Rate Limit Exceeded
 ```json
 {
   "success": false,
-  "message": "Error description",
-  "type": "error_type",
+  "message": "Too many requests, please try again later.",
+  "type": "rate_limit_exceeded",
   "retryAfter": 3600
 }
 ```
 
-### Common Error Types
+### Request Too Large
+```json
+{
+  "success": false,
+  "message": "Request too large. Maximum size is 5MB for batch requests.",
+  "type": "request_too_large"
+}
+```
 
-- `validation_error`: Invalid input parameters
-- `rate_limit_exceeded`: Too many requests
-- `service_unavailable`: AI service temporarily unavailable
-- `server_error`: Internal server error
-- `request_too_large`: Request exceeds size limit
+### Validation Error
+```json
+{
+  "success": false,
+  "message": "Contents array is required and must not be empty",
+  "type": "validation_error"
+}
+```
 
-## Rate Limiting
-
-- **Limit**: 100 requests per hour per user/IP
-- **Window**: 1 hour rolling window
-- **Headers**: Rate limit information included in response headers
-- **Retry**: Wait for the specified `retryAfter` seconds before retrying
-
-## Performance Considerations
-
-- **Response Time**: Typically under 3 seconds
-- **Caching**: Similar requests are cached for 30 minutes
-- **Token Optimization**: Efficient prompt engineering for cost optimization
-- **Batch Processing**: Multiple suggestions processed in single request
-- **Async Processing**: Large content processed asynchronously
-
-## Security Features
-
-- **Input Sanitization**: Content is sanitized to remove potentially harmful elements
-- **Rate Limiting**: Per-user and per-IP rate limiting
-- **Authentication**: JWT token authentication required
-- **Content Filtering**: Inappropriate content is filtered out
-- **Request Size Limits**: Maximum 1MB request size
+### Server Error
+```json
+{
+  "success": false,
+  "message": "Failed to generate batch AI suggestions",
+  "type": "server_error",
+  "error": "Detailed error message"
+}
+```
 
 ## Usage Examples
 
-### Basic Safety Suggestion
+### Single Suggestion Request
+```javascript
+const response = await fetch('/api/v1/suggestions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  },
+  body: JSON.stringify({
+    content: "Employees must follow safety procedures during equipment operation.",
+    context: "safety",
+    documentType: "policies-procedures",
+    section: "Equipment Safety",
+    maxSuggestions: 3
+  })
+});
 
-```bash
-curl -X POST "https://api.example.com/api/v1/ai/suggestions" \
-  -H "Authorization: Bearer your-jwt-token" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Workers must follow safety procedures",
-    "context": "safety",
-    "documentType": "policies-procedures",
-    "section": "safety-procedures",
-    "maxSuggestions": 3
-  }'
+const result = await response.json();
 ```
 
-### Compliance Enhancement
+### Batch Suggestion Request
+```javascript
+const response = await fetch('/api/v1/suggestions/batch', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  },
+  body: JSON.stringify({
+    contents: [
+      {
+        id: "safety-procedure-1",
+        content: "Safety procedures must be followed...",
+        context: "safety",
+        documentType: "policies-procedures"
+      },
+      {
+        id: "compliance-doc-1",
+        content: "Compliance requirements include...",
+        context: "compliance", 
+        documentType: "risk-assessment"
+      }
+    ],
+    documentType: "policies-procedures",
+    maxSuggestions: 3
+  })
+});
 
-```bash
-curl -X POST "https://api.example.com/api/v1/ai/suggestions" \
-  -H "Authorization: Bearer your-jwt-token" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Company policies must be followed",
-    "context": "compliance",
-    "documentType": "policies-procedures",
-    "section": "compliance-requirements",
-    "maxSuggestions": 5
-  }'
+const result = await response.json();
 ```
 
-### Health Check
+## Production Considerations
 
-```bash
-curl -X GET "https://api.example.com/api/v1/ai/health"
-```
+### Rate Limiting
+- Single requests: 100 per hour
+- Batch requests: 50 per hour
+- Rate limits are per authenticated user + IP combination
 
-## Environment Variables
+### Request Size Limits
+- Single requests: 1MB maximum
+- Batch requests: 5MB maximum
+- Individual content items: 10,000 characters maximum
 
-Required environment variables:
+### Batch Processing
+- Maximum 20 content items per batch request
+- Uses the same AI generation logic as single requests
+- Processing time scales with content count (each item processed individually)
+- Results include unique request IDs for tracking
+- Fallback suggestions provided if AI generation fails for any item
 
-```bash
-GOOGLE_GENAI_API_KEY=your_google_genai_api_key_here
-```
+### Caching
+- Responses are cached for 30 minutes
+- Cache key includes content hash, context, document type, and section
+- Cache size limited to 1000 entries with automatic cleanup
 
-## Monitoring and Analytics
+### Error Handling
+- Comprehensive validation for all input parameters
+- Graceful degradation with fallback suggestions
+- Detailed error logging for debugging
+- Proper HTTP status codes for different error types
 
-- All requests are logged with metadata
-- Processing times are tracked
-- Error rates are monitored
-- Usage statistics are available via `/stats` endpoint
-- Cache hit rates are tracked
+## Security Features
 
-## Best Practices
+- Content sanitization to prevent XSS attacks
+- Request size limits to prevent DoS attacks
+- Rate limiting to prevent abuse
+- Authentication required for all endpoints
+- Input validation and sanitization
 
-1. **Content Length**: Keep content under 10,000 characters for optimal performance
-2. **Context Selection**: Choose the most appropriate context for better suggestions
-3. **Rate Limiting**: Implement client-side rate limiting to avoid hitting server limits
-4. **Caching**: Cache responses on the client side for repeated requests
-5. **Error Handling**: Implement proper retry logic with exponential backoff
-6. **Security**: Always validate and sanitize content before sending to the API
-
-## Support
-
-For technical support or questions about the AI Suggestions API, please contact the development team or refer to the internal documentation.
+This API is designed to be production-ready and reliable for health and safety professionals who need intelligent content improvement suggestions for their documentation.
