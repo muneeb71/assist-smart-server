@@ -1,5 +1,6 @@
 import { gemini } from "../../config/aiClients.js";
 import { CustomError } from "../../lib/customError.js";
+import crypto from "crypto";
 
 const suggestionCache = new Map();
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
@@ -98,7 +99,7 @@ const generateAISuggestions = async ({
   const systemPrompt = buildSystemPrompt(context, documentType, section);
   const userPrompt = buildUserPrompt(content, maxSuggestions);
   const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
-
+  console.log("fullPrompt", fullPrompt);
   try {
     const response = await gemini.models.generateContent({
       model: "gemini-2.5-flash",
@@ -110,7 +111,15 @@ const generateAISuggestions = async ({
       throw new CustomError("AI service returned empty response", 500);
     }
 
-    return parseAIResponse(responseText, maxSuggestions);
+    // Limit response length to prevent parsing issues
+    const maxResponseLength = 50000; // 50KB limit
+    const truncatedResponse = responseText.length > maxResponseLength 
+      ? responseText.substring(0, maxResponseLength) + "..."
+      : responseText;
+
+    console.log("AI Response Text length:", responseText.length);
+    console.log("AI Response Text preview:", truncatedResponse.substring(0, 500) + "...");
+    return parseAIResponse(truncatedResponse, maxSuggestions);
   } catch (error) {
     console.error("Gemini API error:", error);
     if (error.message?.includes("quota")) {
@@ -124,9 +133,26 @@ const generateAISuggestions = async ({
 };
 
 const buildSystemPrompt = (context, documentType, section) => {
-  const basePrompt = `You are a Health and Safety consultant providing professional suggestions for workplace safety documentation. Focus on the ${context} context for ${documentType} documents.
+  const basePrompt = `You are a certified Health and Safety Consultant specializing in high-risk operational environments. Your role is to assess procedural content and generate refined, industry-standard safety improvement suggestions that enhance effectiveness, compliance, and operational control.
 
-Generate professional suggestions that improve safety effectiveness, regulatory compliance, and operational excellence. Use industry-standard terminology and provide actionable recommendations.
+Evaluate the provided procedure description using global standards such as OSHA, ISO 45001, NFPA, ANSI, and cGMP frameworks. Analyze gaps and generate concise, actionable recommendations that align with best-in-class safety governance.
+
+CRITICAL OUTPUT REQUIREMENTS:
+- Analyze the input content structure: if it contains lists, maintain list format in improvedText; if it's paragraph text, maintain paragraph format
+- Generate varied, contextually appropriate suggestions - avoid repetitive responses
+- Each suggestion must reflect deep procedural analysis, not surface-level edits
+- Vary the "type" field meaningfully across different professional dimensions
+- The "suggestion" field must read like a top-tier consultant's insight
+- The "improvedText" should be a substantial upgrade in structure, control, and technical accuracy
+- The "reasoning" must offer compelling justification rooted in safety science, regulatory precedence, or operational excellence
+
+Analysis Focus Areas:
+- Procedure completeness, clarity, and enforceability
+- Human error mitigation, verification integrity, and automation opportunities  
+- Quality assurance, traceability, and audit-readiness
+- Emergency preparedness and abnormal condition handling
+- Training adequacy and skill-based qualification
+- Data logging, monitoring systems, and operational traceability
 
 Return ONLY a valid JSON array with this structure:
 [
@@ -136,7 +162,7 @@ Return ONLY a valid JSON array with this structure:
     "category": "Professional category name", 
     "priority": "high|medium|low",
     "suggestion": "Specific actionable recommendation",
-    "improvedText": "Enhanced version with implementation details",
+    "improvedText": "Enhanced version with implementation details (maintain original format structure)",
     "reasoning": "Professional justification"
   }
 ]
@@ -155,116 +181,160 @@ JSON requirements:
 const getContextGuidance = (context) => {
   const guidanceMap = {
     safety: `
-**SAFETY MANAGEMENT SYSTEM ENHANCEMENT**:
-- Implement comprehensive safety management system elements including policy development, hazard identification, risk assessment, and continuous improvement processes
-- Reference specific OSHA 29 CFR standards, ANSI Z10, ISO 45001, and industry-specific safety regulations
-- Include emergency response procedures, evacuation protocols, and crisis management frameworks
-- Emphasize safety culture development, leadership commitment, and employee engagement strategies
-- Focus on incident prevention, near-miss reporting, and safety performance monitoring
-- Include specific safety equipment requirements, PPE specifications, and maintenance protocols
-- Address contractor safety management, visitor safety protocols, and third-party oversight
-- Include safety training requirements, competency standards, and certification frameworks
-- Emphasize hazard communication, safety data sheets, and chemical safety protocols
-- Include workplace inspection procedures, safety audit requirements, and corrective action tracking`,
+**SAFETY MANAGEMENT SYSTEM ENHANCEMENT FOCUS**:
+Prioritize suggestions that address:
+- Human factors engineering and error prevention strategies
+- Behavioral safety programs and safety culture metrics
+- Critical control verification and independent validation systems
+- Safety performance indicators and leading/lagging metrics
+- Incident investigation methodologies and root cause analysis
+- Safety leadership frameworks and accountability structures
+- Hazard identification techniques and risk communication protocols
+- Emergency preparedness and business continuity planning
+- Safety training effectiveness and competency verification
+- Regulatory interface management and compliance optimization`,
 
     compliance: `
-**REGULATORY COMPLIANCE FRAMEWORK**:
-- Establish comprehensive compliance framework with specific federal, state, and local regulations
-- Include industry-specific standards (OSHA, HSE, OSHAD, EPA, NFPA, etc.) with exact regulatory citations
-- Implement compliance monitoring procedures, audit protocols, and regulatory change management
-- Include legal documentation requirements, record-keeping standards, and retention schedules
-- Address non-compliance reporting procedures, corrective action plans, and regulatory communication
-- Include permit requirements, licensing standards, and regulatory notification procedures
-- Emphasize regulatory training requirements, competency standards, and certification frameworks
-- Include compliance risk assessment, regulatory gap analysis, and continuous improvement processes
-- Address multi-jurisdictional compliance, international standards, and cross-border regulatory requirements
-- Include regulatory liaison procedures, inspection preparation, and enforcement response protocols`,
+**REGULATORY COMPLIANCE OPTIMIZATION FOCUS**:
+Prioritize suggestions that address:
+- Multi-jurisdictional regulatory mapping and gap analysis
+- Compliance risk assessment and regulatory change management
+- Audit trail integrity and documentation standards
+- Regulatory liaison protocols and inspection readiness
+- Permit management and regulatory notification systems
+- Compliance monitoring automation and dashboard development
+- Regulatory training requirements and competency frameworks
+- Cross-border compliance and international standards alignment
+- Enforcement response procedures and corrective action tracking
+- Regulatory intelligence gathering and trend analysis`,
 
     procedure: `
-**STANDARDIZED PROCEDURE DEVELOPMENT**:
-- Develop comprehensive standardized procedures with clear step-by-step instructions and quality checkpoints
-- Include responsibility matrices, authority frameworks, and accountability measures for procedure execution
-- Implement quality control measures, verification steps, and continuous improvement processes
-- Include competency requirements, training standards, and qualification frameworks for procedure execution
-- Address procedure version control, approval processes, and change management protocols
-- Include procedure effectiveness monitoring, performance metrics, and review schedules
-- Emphasize procedure accessibility, training delivery, and user comprehension verification
-- Include emergency procedure modifications, crisis response protocols, and contingency planning
-- Address procedure integration with other systems, workflow optimization, and efficiency improvements
-- Include procedure compliance monitoring, audit requirements, and corrective action tracking`,
+**PROCEDURAL EXCELLENCE FRAMEWORK FOCUS**:
+Prioritize suggestions that address:
+- Human reliability analysis and procedure optimization
+- Digital procedure management and workflow automation
+- Procedure effectiveness measurement and continuous improvement
+- Cross-functional procedure integration and system compatibility
+- Procedure accessibility and user experience optimization
+- Change management protocols and version control systems
+- Procedure audit trails and compliance verification
+- Emergency procedure activation and crisis management integration
+- Training delivery optimization and competency assessment
+- Procedure performance analytics and optimization opportunities`,
 
     risk: `
-**RISK MANAGEMENT METHODOLOGY**:
-- Implement comprehensive risk assessment methodology with likelihood, consequence, and risk rating criteria
-- Apply hierarchy of controls systematically: elimination, substitution, engineering, administrative, and PPE
-- Include hazard identification procedures, risk characterization, and control measure selection
-- Implement ongoing risk monitoring, review schedules, and continuous improvement processes
-- Include risk communication protocols, stakeholder engagement, and risk awareness programs
-- Address residual risk management, risk acceptance criteria, and risk tolerance frameworks
-- Include risk assessment documentation, review procedures, and update protocols
-- Emphasize risk-based decision making, resource allocation, and priority setting
-- Include risk training requirements, competency standards, and risk management culture development
-- Address emerging risks, new hazard identification, and proactive risk management strategies`,
+**ADVANCED RISK MANAGEMENT METHODOLOGY FOCUS**:
+Prioritize suggestions that address:
+- Quantitative risk assessment and probabilistic modeling
+- Risk appetite frameworks and tolerance threshold management
+- Emerging risk identification and scenario planning
+- Risk aggregation and portfolio-level risk management
+- Risk communication strategies and stakeholder engagement
+- Risk-based decision making and resource allocation
+- Risk monitoring systems and early warning indicators
+- Risk culture development and behavioral risk management
+- Risk technology integration and digital risk platforms
+- Risk assurance frameworks and independent validation`,
 
     general: `
-**PROFESSIONAL DOCUMENTATION STANDARDS**:
-- Enhance professional tone, industry terminology, and stakeholder communication effectiveness
-- Improve document structure, organization, and user comprehension through clear formatting and logical flow
-- Include regulatory compliance language, legal terminology, and industry-standard expressions
-- Emphasize clarity, conciseness, and actionable content that supports decision-making and implementation
-- Include comprehensive coverage of relevant topics with appropriate depth and technical accuracy
-- Address document accessibility, translation requirements, and multi-language considerations
-- Include professional formatting standards, visual hierarchy, and user-friendly presentation
-- Emphasize consistency with organizational standards, branding guidelines, and professional appearance
-- Include document version control, approval processes, and change management protocols
-- Address document lifecycle management, review schedules, and continuous improvement processes`,
+**STRATEGIC DOCUMENTATION EXCELLENCE FOCUS**:
+Prioritize suggestions that address:
+- Document governance frameworks and lifecycle management
+- Content strategy and stakeholder communication optimization
+- Document accessibility and inclusive design principles
+- Digital transformation and document automation opportunities
+- Cross-functional document integration and system interoperability
+- Document performance analytics and effectiveness measurement
+- Brand consistency and professional presentation standards
+- Regulatory alignment and compliance optimization
+- Document version control and change management protocols
+- User experience design and comprehension optimization`,
   };
 
   return guidanceMap[context] || guidanceMap.general;
 };
 
 const buildUserPrompt = (content, maxSuggestions) => {
-  return `Analyze the following health and safety document content and provide ${maxSuggestions} professional suggestions for improvement:
+  return `Analyze the following health and safety document content and provide exactly ${maxSuggestions} diverse, high-quality professional suggestions for improvement:
 
 "${content}"
 
-Generate exactly ${maxSuggestions} suggestions in JSON array format. Each suggestion must have:
-- id: unique identifier
-- type: one of safety, compliance, emergency, accountability, documentation, procedure, training, quality, risk-management, assessment, monitoring, professional, safety-culture, clarity
-- category: professional category name
-- priority: high, medium, or low
-- suggestion: specific actionable recommendation
-- improvedText: enhanced version with implementation details
-- reasoning: professional justification
+FORMAT PRESERVATION REQUIREMENT:
+- If the original content is structured as lists, maintain list format in improvedText
+- If the original content is paragraph text, maintain paragraph format in improvedText
+- Preserve the logical structure while enhancing content quality and technical accuracy
 
-Return ONLY valid JSON array - no explanations or markdown.`;
+VARIATION REQUIREMENTS:
+- Generate suggestions across different professional dimensions (don't repeat similar types)
+- Ensure each suggestion addresses a distinct aspect of safety management
+- Vary priority levels based on actual risk assessment
+- Create unique, contextually relevant categories
+
+Each suggestion must have:
+- id: unique identifier (use timestamp-based format)
+- type: one of safety, compliance, emergency, accountability, documentation, procedure, training, quality, risk-management, assessment, monitoring, professional, safety-culture, clarity, verification, traceability, governance, competency, integration
+- category: specific professional category name
+- priority: high, medium, or low (based on risk assessment)
+- suggestion: specific actionable recommendation with measurable outcomes
+- improvedText: enhanced version that maintains original format structure but significantly improves content quality, technical accuracy, and operational effectiveness (keep under 2000 characters)
+- reasoning: compelling professional justification citing relevant standards, best practices, or safety science principles
+
+Return ONLY valid JSON array - no explanations, markdown formatting, code blocks, or additional text.`;
 };
 
 const parseAIResponse = (response, maxSuggestions) => {
   try {
-    // First, try to extract JSON array from the response
-    let jsonMatch = response.match(/\[[\s\S]*\]/);
+    console.log("Starting to parse AI response...");
+    
+    // First, try to extract JSON from markdown code blocks
+    let jsonMatch = response.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
+    if (jsonMatch) {
+      console.log("Found JSON in markdown code block");
+      jsonMatch = [jsonMatch[1]];
+    } else {
+      // Try to extract JSON array from the response
+      jsonMatch = response.match(/\[[\s\S]*\]/);
+      console.log("JSON array match found:", !!jsonMatch);
+    }
 
     if (!jsonMatch) {
       // Try to find any JSON object structure
-      jsonMatch = response.match(/\{[\s\S]*\}/);
+      jsonMatch = response.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
       if (jsonMatch) {
-        // If we found an object, try to wrap it in an array
-        jsonMatch[0] = `[${jsonMatch[0]}]`;
+        console.log("Found JSON object in markdown code block");
+        jsonMatch = [`[${jsonMatch[1]}]`];
       } else {
-        throw new Error("No JSON structure found in response");
+        jsonMatch = response.match(/\{[\s\S]*\}/);
+        console.log("JSON object match found:", !!jsonMatch);
+        if (jsonMatch) {
+          // If we found an object, try to wrap it in an array
+          jsonMatch[0] = `[${jsonMatch[0]}]`;
+        } else {
+          throw new Error("No JSON structure found in response");
+        }
       }
     }
 
     let jsonString = jsonMatch[0];
+    console.log("Extracted JSON string length:", jsonString.length);
+    console.log("JSON string preview:", jsonString.substring(0, 200) + "...");
 
     // Clean up common AI response issues
     jsonString = cleanJsonString(jsonString);
+    console.log("After cleaning, JSON string length:", jsonString.length);
+
+    // Fix line breaks and other formatting issues
+    jsonString = jsonString.replace(/"([^"]*)\n([^"]*)"/g, '"$1 $2"'); // Fix line breaks in strings
+    jsonString = jsonString.replace(/"([^"]*)\r\n([^"]*)"/g, '"$1 $2"'); // Fix Windows line breaks
+    jsonString = jsonString.replace(/,(\s*[}\]])/g, "$1"); // Remove trailing commas
+    console.log("After fixing formatting, JSON string length:", jsonString.length);
 
     // Try to fix incomplete strings in JSON
     jsonString = fixIncompleteStrings(jsonString);
+    console.log("After fixing incomplete strings, JSON string length:", jsonString.length);
 
-    const suggestions = JSON.parse(JSON.stringify(jsonString));
+    const suggestions = JSON.parse(jsonString);
+    console.log("Successfully parsed JSON, suggestions count:", Array.isArray(suggestions) ? suggestions.length : 1);
 
     // Ensure we have an array
     const suggestionsArray = Array.isArray(suggestions)
@@ -279,19 +349,25 @@ const parseAIResponse = (response, maxSuggestions) => {
         category: suggestion.category || "General Improvement",
         priority: suggestion.priority || "medium",
         suggestion: suggestion.suggestion || "",
-        improvedText: suggestion.improvedText || null,
+        improvedText: suggestion.improvedText ? truncateText(suggestion.improvedText, 2000) : null,
         reasoning: suggestion.reasoning || "",
       }));
+
+    console.log("Processed suggestions:", processedSuggestions.length);
 
     // Check if we got meaningful suggestions
     const hasValidSuggestions = processedSuggestions.some(
       (s) => s.suggestion && s.suggestion.trim().length > 0
     );
 
+    console.log("Has valid suggestions:", hasValidSuggestions);
+
     if (!hasValidSuggestions) {
+      console.log("No valid suggestions found, using fallback");
       return generateFallbackSuggestions(maxSuggestions);
     }
 
+    console.log("Returning AI-generated suggestions");
     return processedSuggestions;
   } catch (error) {
     console.error("Error parsing AI response:", error);
@@ -307,12 +383,14 @@ const parseAIResponse = (response, maxSuggestions) => {
         maxSuggestions
       );
       if (recoveredSuggestions && recoveredSuggestions.length > 0) {
+        console.log("Successfully recovered suggestions");
         return recoveredSuggestions;
       }
     } catch (recoveryError) {
       console.error("JSON recovery also failed:", recoveryError);
     }
 
+    console.log("Using fallback suggestions due to parsing failure");
     return generateFallbackSuggestions(maxSuggestions);
   }
 };
@@ -358,46 +436,108 @@ const fixIncompleteStrings = (jsonString) => {
 
 const attemptJsonRecovery = (response, maxSuggestions) => {
   try {
-    // Try to extract individual suggestion objects from the response
-    const suggestionMatches = response.match(/\{[^{}]*"id"[^{}]*\}/g);
+    // First try to extract from markdown code blocks
+    let cleanResponse = response;
+    
+    // Remove markdown formatting
+    cleanResponse = cleanResponse.replace(/```json\s*|\s*```/g, "");
+    cleanResponse = cleanResponse.replace(/```\s*|\s*```/g, "");
+    cleanResponse = cleanResponse.replace(/^```.*$/gm, "");
+    cleanResponse = cleanResponse.trim();
 
-    if (suggestionMatches && suggestionMatches.length > 0) {
-      const recoveredSuggestions = [];
-
-      for (const match of suggestionMatches) {
-        try {
-          // Try to clean and parse each individual suggestion
-          let cleanedMatch = match;
-
-          // Fix incomplete strings in individual objects
-          if (!cleanedMatch.endsWith("}")) {
-            cleanedMatch += "}";
-          }
-
-          // Remove incomplete properties
-          cleanedMatch = cleanedMatch.replace(/"[^"]*$/, '""');
-
-          const suggestion = JSON.parse(cleanedMatch);
-          recoveredSuggestions.push(suggestion);
-        } catch (e) {
-          // Skip this suggestion if it can't be parsed
+    // Try a more sophisticated approach to extract JSON objects
+    // Look for complete objects by counting braces
+    const recoveredSuggestions = [];
+    let currentPos = 0;
+    
+    while (currentPos < cleanResponse.length) {
+      const openBrace = cleanResponse.indexOf('{', currentPos);
+      if (openBrace === -1) break;
+      
+      let braceCount = 0;
+      let objectEnd = -1;
+      let inString = false;
+      let escapeNext = false;
+      
+      for (let i = openBrace; i < cleanResponse.length; i++) {
+        const char = cleanResponse[i];
+        
+        if (escapeNext) {
+          escapeNext = false;
           continue;
         }
+        
+        if (char === '\\') {
+          escapeNext = true;
+          continue;
+        }
+        
+        if (char === '"') {
+          inString = !inString;
+          continue;
+        }
+        
+        if (!inString) {
+          if (char === '{') {
+            braceCount++;
+          } else if (char === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              objectEnd = i;
+              break;
+            }
+          }
+        }
       }
+      
+      if (objectEnd !== -1) {
+        const objectStr = cleanResponse.substring(openBrace, objectEnd + 1);
+        
+        try {
+          // Clean up the object string
+          let cleanedObject = objectStr;
+          
+          // Fix common issues
+          cleanedObject = cleanedObject.replace(/,(\s*[}\]])/g, "$1"); // Remove trailing commas
+          cleanedObject = cleanedObject.replace(/"([^"]*)\n([^"]*)"/g, '"$1 $2"'); // Fix line breaks in strings
+          cleanedObject = cleanedObject.replace(/"([^"]*)\r\n([^"]*)"/g, '"$1 $2"'); // Fix Windows line breaks
+          
+          const suggestion = JSON.parse(cleanedObject);
+          
+          // Validate that this looks like a suggestion object
+          if (suggestion && (suggestion.id || suggestion.type || suggestion.suggestion)) {
+            recoveredSuggestions.push(suggestion);
+          }
+        } catch (e) {
+          console.log("Failed to parse object at position", openBrace, ":", e.message);
+          // Try to create a partial suggestion from what we can extract
+          try {
+            const partialSuggestion = createPartialSuggestion(objectStr);
+            if (partialSuggestion) {
+              recoveredSuggestions.push(partialSuggestion);
+            }
+          } catch (partialError) {
+            console.log("Failed to create partial suggestion:", partialError.message);
+          }
+        }
+      }
+      
+      currentPos = openBrace + 1;
+    }
 
-      if (recoveredSuggestions.length > 0) {
-        return recoveredSuggestions
-          .slice(0, maxSuggestions)
-          .map((suggestion, index) => ({
-            id: suggestion.id || `recovered-${Date.now()}-${index}`,
-            type: suggestion.type || "content",
-            category: suggestion.category || "General Improvement",
-            priority: suggestion.priority || "medium",
-            suggestion: suggestion.suggestion || "",
-            improvedText: suggestion.improvedText || null,
-            reasoning: suggestion.reasoning || "",
-          }));
-      }
+    if (recoveredSuggestions.length > 0) {
+      console.log("Successfully recovered", recoveredSuggestions.length, "suggestions");
+      return recoveredSuggestions
+        .slice(0, maxSuggestions)
+        .map((suggestion, index) => ({
+          id: suggestion.id || `recovered-${Date.now()}-${index}`,
+          type: suggestion.type || "content",
+          category: suggestion.category || "General Improvement",
+          priority: suggestion.priority || "medium",
+          suggestion: suggestion.suggestion || "",
+          improvedText: suggestion.improvedText || null,
+          reasoning: suggestion.reasoning || "",
+        }));
     }
 
     return null;
@@ -407,11 +547,44 @@ const attemptJsonRecovery = (response, maxSuggestions) => {
   }
 };
 
+const createPartialSuggestion = (objectStr) => {
+  try {
+    // Try to extract basic fields using regex
+    const idMatch = objectStr.match(/"id"\s*:\s*"([^"]*)"/);
+    const typeMatch = objectStr.match(/"type"\s*:\s*"([^"]*)"/);
+    const categoryMatch = objectStr.match(/"category"\s*:\s*"([^"]*)"/);
+    const priorityMatch = objectStr.match(/"priority"\s*:\s*"([^"]*)"/);
+    const suggestionMatch = objectStr.match(/"suggestion"\s*:\s*"([^"]*)"/);
+    
+    if (suggestionMatch) {
+      return {
+        id: idMatch ? idMatch[1] : `partial-${Date.now()}`,
+        type: typeMatch ? typeMatch[1] : "content",
+        category: categoryMatch ? categoryMatch[1] : "General Improvement",
+        priority: priorityMatch ? priorityMatch[1] : "medium",
+        suggestion: suggestionMatch[1],
+        improvedText: null,
+        reasoning: "",
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.log("Error creating partial suggestion:", error.message);
+    return null;
+  }
+};
+
 const cleanJsonString = (jsonString) => {
   try {
-    // Remove any markdown formatting
+    // Remove any markdown formatting more aggressively
     jsonString = jsonString.replace(/```json\s*|\s*```/g, "");
     jsonString = jsonString.replace(/```\s*|\s*```/g, "");
+    jsonString = jsonString.replace(/^```.*$/gm, ""); // Remove any remaining ``` lines
+    jsonString = jsonString.replace(/^\s*```.*$/gm, ""); // Remove lines starting with ```
+    
+    // Remove any leading/trailing whitespace
+    jsonString = jsonString.trim();
 
     // Handle truncated JSON responses
     jsonString = handleTruncatedJson(jsonString);
@@ -671,8 +844,23 @@ const validateInput = ({
   }
 };
 
+const truncateText = (text, maxLength) => {
+  if (!text || typeof text !== 'string') return text;
+  if (text.length <= maxLength) return text;
+  
+  // Try to truncate at a word boundary
+  const truncated = text.substring(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(' ');
+  
+  if (lastSpace > maxLength * 0.8) {
+    return truncated.substring(0, lastSpace) + '...';
+  }
+  
+  return truncated + '...';
+};
+
 const generateCacheKey = ({ content, context, documentType, section }) => {
-  const contentHash = require("crypto")
+  const contentHash = crypto
     .createHash("md5")
     .update(content.toLowerCase().trim())
     .digest("hex");

@@ -39,7 +39,7 @@ export const generateSuggestions = async (req, res) => {
       userId,
       ipAddress,
     });
-
+    console.log("result", result);
     return successResponse(res, "Suggestions generated successfully", result);
   } catch (error) {
     console.error("Error in generateSuggestions controller:", error);
@@ -283,4 +283,3 @@ export const generateBatchSuggestions = async (req, res) => {
     return errorResponse(res, "Internal server error", error);
   }
 };
-
