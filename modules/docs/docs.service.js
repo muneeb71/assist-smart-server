@@ -406,10 +406,14 @@ export const createTrainingTrackerService = async ({
       where: {
         userId: parsedUserId,
         companyBrandingId: parsedCompanyBrandingId,
+        employeeName: employeeName,
         employeeIdNumber: employeeIdNumber,
         trainingType: trainingType,
         trainingTopic: trainingTopic,
         dateAndTime: parseExcelDate(dateAndTime),
+        trainingHours: trainingHours,
+        location: location,
+        trainingGivenBy: trainingGivenBy,
       },
       include: {
         companyBranding: true,
@@ -709,6 +713,58 @@ export const deleteTrainingTrackerService = async ({ id, userId }) => {
   }
 };
 
+export const deleteMultipleTrainingTrackersService = async ({
+  ids,
+  userId,
+}) => {
+  try {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      throw new CustomError("IDs array is required and cannot be empty", 400);
+    }
+
+    if (ids.length > 100) {
+      throw new CustomError("Maximum 100 records can be deleted at once", 400);
+    }
+
+    const existingRecords = await prisma.trainingTracker.findMany({
+      where: {
+        id: { in: ids },
+        userId: userId,
+      },
+      select: { id: true },
+    });
+
+    if (existingRecords.length !== ids.length) {
+      const foundIds = existingRecords.map((record) => record.id);
+      const notFoundIds = ids.filter((id) => !foundIds.includes(id));
+      throw new CustomError(
+        `Some training records not found or don't belong to you: ${notFoundIds.join(
+          ", "
+        )}`,
+        404
+      );
+    }
+
+    await prisma.trainingTracker.deleteMany({
+      where: {
+        id: { in: ids },
+        userId: userId,
+      },
+    });
+
+    return {
+      success: true,
+      message: `${ids.length} training records deleted successfully`,
+      deletedCount: ids.length,
+    };
+  } catch (err) {
+    throw new CustomError(
+      err.message || "Internal Server Error",
+      err.statusCode || 500
+    );
+  }
+};
+
 export const createTrainingTrackerBulkService = async (
   data,
   companyBrandingId,
@@ -777,10 +833,14 @@ export const createTrainingTrackerBulkService = async (
             companyBrandingId: companyBrandingId
               ? parseInt(companyBrandingId)
               : null,
+            employeeName: record.employeeName,
             employeeIdNumber: record.employeeIdNumber || null,
             trainingType: record.trainingType,
             trainingTopic: record.trainingTopic,
             dateAndTime: parseExcelDate(record.dateAndTime),
+            trainingHours: record.trainingHours,
+            location: record.location,
+            trainingGivenBy: record.trainingGivenBy,
           },
         });
 

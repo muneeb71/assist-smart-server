@@ -11,6 +11,7 @@ router.get("/training-tracker", authenticate, docsController.listTrainingTracker
 router.get("/training-tracker/:id", authenticate, docsController.getTrainingTracker);
 router.put("/training-tracker/:id", authenticate, docsController.updateTrainingTracker);
 router.delete("/training-tracker/:id", authenticate, docsController.deleteTrainingTracker);
+router.delete("/training-tracker", authenticate, docsController.deleteMultipleTrainingTrackers);
 
 // Legacy route for backward compatibility
 router.post("/training-tracker-legacy", authenticate, docsController.trainingTracker);

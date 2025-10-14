@@ -277,6 +277,30 @@ export const deleteTrainingTracker = async (req, res) => {
   }
 };
 
+export const deleteMultipleTrainingTrackers = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    const { userId } = req.user;
+    
+    if (!ids || !Array.isArray(ids)) {
+      return res.status(400).json({
+        success: false,
+        message: "IDs array is required",
+      });
+    }
+
+    const result = await docsService.deleteMultipleTrainingTrackersService({
+      ids,
+      userId,
+    });
+    res.json(result);
+  } catch (err) {
+    res
+      .status(err.statusCode || 500)
+      .json({ success: false, message: err.message });
+  }
+};
+
 export const trainingTracker = async (req, res) => {
   try {
     const { userId } = req.user;

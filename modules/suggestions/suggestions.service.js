@@ -99,7 +99,7 @@ const generateAISuggestions = async ({
   const systemPrompt = buildSystemPrompt(context, documentType, section);
   const userPrompt = buildUserPrompt(content, maxSuggestions);
   const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
-  console.log("fullPrompt", fullPrompt);
+
   try {
     const response = await gemini.models.generateContent({
       model: "gemini-2.5-flash",
@@ -117,9 +117,7 @@ const generateAISuggestions = async ({
       ? responseText.substring(0, maxResponseLength) + "..."
       : responseText;
 
-    console.log("AI Response Text length:", responseText.length);
-    console.log("AI Response Text preview:", truncatedResponse.substring(0, 500) + "...");
-    return parseAIResponse(truncatedResponse, maxSuggestions);
+    return parseAIResponse(responseText, maxSuggestions);
   } catch (error) {
     console.error("Gemini API error:", error);
     if (error.message?.includes("quota")) {
